@@ -299,6 +299,22 @@
                 下一页 ›
               </button>
             </div>
+            <!-- 页面跳转输入框 -->
+            <div v-if="totalPages > 1" class="page-jump">
+              <span class="page-jump-label">跳转到</span>
+              <input 
+                v-model.number="pageJumpInput"
+                @keyup.enter="jumpToPage"
+                @blur="jumpToPage"
+                type="number"
+                :min="1"
+                :max="totalPages"
+                class="page-jump-input"
+                placeholder="页码"
+              >
+              <span class="page-jump-total">/ {{ totalPages }} 页</span>
+              <button @click="jumpToPage" class="page-jump-btn">跳转</button>
+            </div>
           </div>
         </div>
       </div>
@@ -369,24 +385,55 @@
                 下一页 ›
               </button>
             </div>
+            <!-- 历史记录页面跳转输入框 -->
+            <div v-if="historyTotalPages > 1" class="page-jump">
+              <span class="page-jump-label">跳转到</span>
+              <input 
+                v-model.number="historyPageJumpInput"
+                @keyup.enter="jumpToHistoryPage"
+                @blur="jumpToHistoryPage"
+                type="number"
+                :min="1"
+                :max="historyTotalPages"
+                class="page-jump-input"
+                placeholder="页码"
+              >
+              <span class="page-jump-total">/ {{ historyTotalPages }} 页</span>
+              <button @click="jumpToHistoryPage" class="page-jump-btn">跳转</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 通知栏 -->
-    <div 
-      v-if="showNotification" 
-      class="notification-toast"
-      :class="`notification-${notificationType}`"
-    >
-      <div class="notification-content">
-        <div class="notification-icon">
-          <span v-if="notificationType === 'success'">✅</span>
-          <span v-else-if="notificationType === 'error'">❌</span>
-          <span v-else>ℹ️</span>
+    <!-- 通知栏容器 -->
+    <div class="toast-container">
+      <div 
+        v-for="notification in notifications" 
+        :key="notification.id"
+        class="toast-notification"
+        :class="`toast-${notification.type}`"
+      >
+        <div class="toast-content">
+          <div class="toast-icon">
+            <span v-if="notification.type === 'success'">✅</span>
+            <span v-else-if="notification.type === 'error'">❌</span>
+            <span v-else>ℹ️</span>
+          </div>
+          <span class="toast-message">{{ notification.message }}</span>
+          <button 
+            @click="closeNotification(notification.id)"
+            class="toast-close"
+          >
+            ×
+          </button>
         </div>
-        <span class="notification-message">{{ notificationMessage }}</span>
+        <div class="toast-progress">
+          <div 
+            class="toast-progress-bar"
+            :style="{ width: notification.progress + '%' }"
+          ></div>
+        </div>
       </div>
     </div>
   </div>
@@ -413,6 +460,8 @@ const currentPage = ref(1)
 const pageSize = 100
 const historyCurrentPage = ref(1)
 const historyPageSize = 20
+const pageJumpInput = ref<number | null>(null)
+const historyPageJumpInput = ref<number | null>(null)
 
 // 参数控制
 const artistCount = ref(3)
@@ -426,9 +475,75 @@ const naiMode = ref(false)
 const bracketLayers = ref(1)
 
 // 通知系统
-const showNotification = ref(false)
-const notificationMessage = ref('')
-const notificationType = ref<'success' | 'error' | 'info'>('success')
+interface ToastNotification {
+  id: string
+  message: string
+  type: 'success' | 'error' | 'info'
+  duration: number
+  progress: number
+  timer?: number
+}
+
+const notifications = ref<ToastNotification[]>([])
+
+// 数据持久化相关
+const STORAGE_KEYS = {
+  HISTORY: 'artist-generator-history',
+  PARAMS: 'artist-generator-params',
+  PAGINATION: 'artist-generator-pagination'
+}
+
+// 保存数据到localStorage（一个月过期）
+const saveToStorage = (key: string, data: any) => {
+  try {
+    const item = {
+      data,
+      timestamp: Date.now(),
+      expiry: Date.now() + 30 * 24 * 60 * 60 * 1000 // 30天过期
+    }
+    localStorage.setItem(key, JSON.stringify(item))
+  } catch (error) {
+    console.warn('保存数据失败:', error)
+  }
+}
+
+// 从localStorage读取数据
+const loadFromStorage = (key: string) => {
+  try {
+    const item = localStorage.getItem(key)
+    if (!item) return null
+    
+    const parsed = JSON.parse(item)
+    
+    // 检查是否过期
+    if (Date.now() > parsed.expiry) {
+      localStorage.removeItem(key)
+      return null
+    }
+    
+    return parsed.data
+  } catch (error) {
+    console.warn('读取数据失败:', error)
+    return null
+  }
+}
+
+// 清理过期数据
+const cleanExpiredStorage = () => {
+  Object.values(STORAGE_KEYS).forEach(key => {
+    const item = localStorage.getItem(key)
+    if (item) {
+      try {
+        const parsed = JSON.parse(item)
+        if (Date.now() > parsed.expiry) {
+          localStorage.removeItem(key)
+        }
+      } catch (error) {
+        localStorage.removeItem(key)
+      }
+    }
+  })
+}
 
 const presets = [
   {
@@ -481,12 +596,14 @@ const loadArtists = async () => {
 const increaseCount = () => {
   if (artistCount.value < 25) {
     artistCount.value++
+    saveParams()
   }
 }
 
 const decreaseCount = () => {
   if (artistCount.value > 1) {
     artistCount.value--
+    saveParams()
   }
 }
 
@@ -494,25 +611,44 @@ const decreaseCount = () => {
 const increaseWeightMin = () => {
   if (weightMin.value < weightMax.value) {
     weightMin.value = parseFloat((weightMin.value + 0.1).toFixed(1))
+    saveParams()
   }
 }
 
 const decreaseWeightMin = () => {
   if (weightMin.value > 0.1) {
     weightMin.value = parseFloat((weightMin.value - 0.1).toFixed(1))
+    saveParams()
   }
 }
 
 const increaseWeightMax = () => {
   if (weightMax.value < 2.0) {
     weightMax.value = parseFloat((weightMax.value + 0.1).toFixed(1))
+    saveParams()
   }
 }
 
 const decreaseWeightMax = () => {
   if (weightMax.value > weightMin.value) {
     weightMax.value = parseFloat((weightMax.value - 0.1).toFixed(1))
+    saveParams()
   }
+}
+
+// 保存参数到localStorage
+const saveParams = () => {
+  const params = {
+    artistCount: artistCount.value,
+    weightMin: weightMin.value,
+    weightMax: weightMax.value,
+    pureMode: pureMode.value,
+    bracketMode: bracketMode.value,
+    naiMode: naiMode.value,
+    bracketLayers: bracketLayers.value,
+    lastUsedPreset: lastUsedPreset.value
+  }
+  saveToStorage(STORAGE_KEYS.PARAMS, params)
 }
 
 // 应用预设配置
@@ -522,6 +658,7 @@ const applyPreset = (preset: typeof presets[0]) => {
   weightMin.value = config.weightRange[0]
   weightMax.value = config.weightRange[1]
   lastUsedPreset.value = preset.id
+  saveParams()
 }
 
 const generate = () => {
@@ -629,19 +766,60 @@ const generate = () => {
     history.value = history.value.slice(0, 20)
   }
   
+  // 保存历史记录到localStorage
+  saveToStorage(STORAGE_KEYS.HISTORY, history.value)
+  
   // 显示生成成功通知
   displayNotification(`生成成功！获得 ${selectedArtists.length} 个画师`, 'success', 1000)
 }
 
 // 显示通知函数
 const displayNotification = (message: string, type: 'success' | 'error' | 'info' = 'success', duration: number = 1000) => {
-  notificationMessage.value = message
-  notificationType.value = type
-  showNotification.value = true
+  const id = Date.now().toString() + Math.random().toString(36).substr(2, 9)
   
-  setTimeout(() => {
-    showNotification.value = false
-  }, duration)
+  const notification: ToastNotification = {
+    id,
+    message,
+    type,
+    duration,
+    progress: 100
+  }
+  
+  notifications.value.push(notification)
+  
+  // 进度条动画
+  const startTime = Date.now()
+  const updateProgress = () => {
+    const elapsed = Date.now() - startTime
+    const remaining = Math.max(0, duration - elapsed)
+    notification.progress = (remaining / duration) * 100
+    
+    if (remaining > 0) {
+      notification.timer = requestAnimationFrame(updateProgress)
+    } else {
+      removeNotification(id)
+    }
+  }
+  
+  // 开始进度条动画
+  notification.timer = requestAnimationFrame(updateProgress)
+}
+
+// 移除通知
+const removeNotification = (id: string) => {
+  const index = notifications.value.findIndex(n => n.id === id)
+  if (index > -1) {
+    const notification = notifications.value[index]
+    if (notification.timer) {
+      cancelAnimationFrame(notification.timer)
+    }
+    notifications.value.splice(index, 1)
+  }
+}
+
+// 手动关闭通知
+const closeNotification = (id: string) => {
+  removeNotification(id)
 }
 
 const copyResult = async () => {
@@ -736,6 +914,21 @@ const goToHistoryPage = (page: number) => {
   }
 }
 
+// 页面跳转函数
+const jumpToPage = () => {
+  if (pageJumpInput.value && pageJumpInput.value >= 1 && pageJumpInput.value <= totalPages.value) {
+    goToPage(pageJumpInput.value)
+    pageJumpInput.value = null
+  }
+}
+
+const jumpToHistoryPage = () => {
+  if (historyPageJumpInput.value && historyPageJumpInput.value >= 1 && historyPageJumpInput.value <= historyTotalPages.value) {
+    goToHistoryPage(historyPageJumpInput.value)
+    historyPageJumpInput.value = null
+  }
+}
+
 const resetPagination = () => {
   currentPage.value = 1
 }
@@ -747,6 +940,7 @@ const togglePureMode = () => {
     bracketMode.value = false
     naiMode.value = false
   }
+  saveParams()
 }
 
 const toggleBracketMode = () => {
@@ -755,6 +949,7 @@ const toggleBracketMode = () => {
     pureMode.value = false
     naiMode.value = false
   }
+  saveParams()
 }
 
 const toggleNaiMode = () => {
@@ -763,6 +958,7 @@ const toggleNaiMode = () => {
     pureMode.value = false
     bracketMode.value = false
   }
+  saveParams()
 }
 
 // 获取页码数组
@@ -842,8 +1038,38 @@ const getHistoryPageNumbers = () => {
   return pages
 }
 
+// 加载保存的数据
+const loadSavedData = () => {
+  // 清理过期数据
+  cleanExpiredStorage()
+  
+  // 加载历史记录
+  const savedHistory = loadFromStorage(STORAGE_KEYS.HISTORY)
+  if (savedHistory && Array.isArray(savedHistory)) {
+    // 转换时间戳为Date对象
+    history.value = savedHistory.map(item => ({
+      ...item,
+      timestamp: new Date(item.timestamp)
+    }))
+  }
+  
+  // 加载参数
+  const savedParams = loadFromStorage(STORAGE_KEYS.PARAMS)
+  if (savedParams) {
+    artistCount.value = savedParams.artistCount || 3
+    weightMin.value = savedParams.weightMin || 1.0
+    weightMax.value = savedParams.weightMax || 1.5
+    pureMode.value = savedParams.pureMode || false
+    bracketMode.value = savedParams.bracketMode || false
+    naiMode.value = savedParams.naiMode || false
+    bracketLayers.value = savedParams.bracketLayers || 1
+    lastUsedPreset.value = savedParams.lastUsedPreset || null
+  }
+}
+
 onMounted(() => {
   loadArtists()
+  loadSavedData()
 })
 </script>
 
@@ -1807,6 +2033,67 @@ onMounted(() => {
   border-color: #e5e5e5;
 }
 
+/* 页面跳转输入框样式 */
+.page-jump {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid #e5e5e5;
+}
+
+.page-jump-label {
+  font-size: 14px;
+  color: #666666;
+  font-weight: 500;
+}
+
+.page-jump-input {
+  width: 60px;
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: center;
+  background: #ffffff;
+  transition: border-color 0.2s ease;
+}
+
+.page-jump-input:focus {
+  outline: none;
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.1);
+}
+
+.page-jump-total {
+  font-size: 14px;
+  color: #666666;
+}
+
+.page-jump-btn {
+  padding: 6px 12px;
+  background: #fbbf24;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.page-jump-btn:hover {
+  background: #f59e0b;
+  transform: translateY(-1px);
+}
+
+.page-jump-btn:active {
+  transform: translateY(0);
+}
+
 /* 历史记录统计 */
 .history-stats {
   font-size: 14px;
@@ -1855,88 +2142,148 @@ onMounted(() => {
   }
 }
 
-/* 通知栏样式 */
-.notification-toast {
+/* Toast通知系统样式 */
+.toast-container {
   position: fixed;
   top: 24px;
   right: 24px;
   z-index: 1000;
-  min-width: 300px;
-  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.toast-notification {
+  min-width: 320px;
+  max-width: 420px;
   border-radius: 16px;
-  padding: 16px 20px;
+  background: #ffffff;
   box-shadow: 
     0 4px 8px rgba(0, 0, 0, 0.1),
     0 8px 16px rgba(0, 0, 0, 0.08),
     0 16px 32px rgba(0, 0, 0, 0.06);
   border: 2px solid;
-  animation: slideInRight 0.3s ease-out, fadeOut 0.3s ease-in 0.7s;
-  backdrop-filter: blur(8px);
+  overflow: hidden;
+  animation: slideInRight 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  pointer-events: auto;
+  position: relative;
 }
 
-.notification-success {
-  background: rgba(34, 197, 94, 0.95);
+.toast-success {
   border-color: #22c55e;
-  color: #ffffff;
 }
 
-.notification-error {
-  background: rgba(239, 68, 68, 0.95);
+.toast-error {
   border-color: #ef4444;
-  color: #ffffff;
 }
 
-.notification-info {
-  background: rgba(59, 130, 246, 0.95);
+.toast-info {
   border-color: #3b82f6;
-  color: #ffffff;
 }
 
-.notification-content {
+.toast-content {
   display: flex;
   align-items: center;
   gap: 12px;
+  padding: 16px 20px;
+  position: relative;
 }
 
-.notification-icon {
+.toast-icon {
   font-size: 20px;
   flex-shrink: 0;
 }
 
-.notification-message {
+.toast-message {
   font-size: 14px;
   font-weight: 600;
+  color: #1a1a1a;
   flex: 1;
+  line-height: 1.4;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #666666;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.toast-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #1a1a1a;
+}
+
+.toast-progress {
+  height: 4px;
+  background: rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.toast-progress-bar {
+  height: 100%;
+  transition: width 0.1s linear;
+  border-radius: 0 2px 2px 0;
+}
+
+.toast-success .toast-progress-bar {
+  background: #22c55e;
+}
+
+.toast-error .toast-progress-bar {
+  background: #ef4444;
+}
+
+.toast-info .toast-progress-bar {
+  background: #3b82f6;
 }
 
 @keyframes slideInRight {
   from {
-    transform: translateX(100%);
+    transform: translateX(100%) scale(0.8);
     opacity: 0;
   }
   to {
-    transform: translateX(0);
+    transform: translateX(0) scale(1);
     opacity: 1;
   }
 }
 
-@keyframes fadeOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-/* 移动端通知栏适配 */
+/* 移动端Toast适配 */
 @media (max-width: 768px) {
-  .notification-toast {
+  .toast-container {
     top: 16px;
     right: 16px;
     left: 16px;
+  }
+  
+  .toast-notification {
     min-width: auto;
     max-width: none;
+  }
+  
+  .toast-content {
+    padding: 14px 16px;
+  }
+  
+  .toast-message {
+    font-size: 13px;
+  }
+  
+  .toast-icon {
+    font-size: 18px;
   }
 }
 </style> 
