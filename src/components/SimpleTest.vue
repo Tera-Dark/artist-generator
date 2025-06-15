@@ -373,6 +373,22 @@
         </div>
       </div>
     </div>
+
+    <!-- 通知栏 -->
+    <div 
+      v-if="showNotification" 
+      class="notification-toast"
+      :class="`notification-${notificationType}`"
+    >
+      <div class="notification-content">
+        <div class="notification-icon">
+          <span v-if="notificationType === 'success'">✅</span>
+          <span v-else-if="notificationType === 'error'">❌</span>
+          <span v-else>ℹ️</span>
+        </div>
+        <span class="notification-message">{{ notificationMessage }}</span>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -408,6 +424,11 @@ const pureMode = ref(false)
 const bracketMode = ref(false)
 const naiMode = ref(false)
 const bracketLayers = ref(1)
+
+// 通知系统
+const showNotification = ref(false)
+const notificationMessage = ref('')
+const notificationType = ref<'success' | 'error' | 'info'>('success')
 
 const presets = [
   {
@@ -607,14 +628,28 @@ const generate = () => {
   if (history.value.length > 20) {
     history.value = history.value.slice(0, 20)
   }
+  
+  // 显示生成成功通知
+  displayNotification(`生成成功！获得 ${selectedArtists.length} 个画师`, 'success', 1000)
+}
+
+// 显示通知函数
+const displayNotification = (message: string, type: 'success' | 'error' | 'info' = 'success', duration: number = 1000) => {
+  notificationMessage.value = message
+  notificationType.value = type
+  showNotification.value = true
+  
+  setTimeout(() => {
+    showNotification.value = false
+  }, duration)
 }
 
 const copyResult = async () => {
   try {
     await navigator.clipboard.writeText(result.value)
-    alert('复制成功!')
+    displayNotification('复制成功！', 'success', 1000)
   } catch {
-    alert('复制失败，请手动复制')
+    displayNotification('复制失败，请手动复制', 'error', 2000)
   }
 }
 
@@ -1817,6 +1852,91 @@ onMounted(() => {
     padding: 4px 6px;
     font-size: 12px;
     min-width: 24px;
+  }
+}
+
+/* 通知栏样式 */
+.notification-toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1000;
+  min-width: 300px;
+  max-width: 400px;
+  border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.08),
+    0 16px 32px rgba(0, 0, 0, 0.06);
+  border: 2px solid;
+  animation: slideInRight 0.3s ease-out, fadeOut 0.3s ease-in 0.7s;
+  backdrop-filter: blur(8px);
+}
+
+.notification-success {
+  background: rgba(34, 197, 94, 0.95);
+  border-color: #22c55e;
+  color: #ffffff;
+}
+
+.notification-error {
+  background: rgba(239, 68, 68, 0.95);
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
+.notification-info {
+  background: rgba(59, 130, 246, 0.95);
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.notification-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.notification-message {
+  font-size: 14px;
+  font-weight: 600;
+  flex: 1;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* 移动端通知栏适配 */
+@media (max-width: 768px) {
+  .notification-toast {
+    top: 16px;
+    right: 16px;
+    left: 16px;
+    min-width: auto;
+    max-width: none;
   }
 }
 </style> 
