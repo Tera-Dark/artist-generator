@@ -28,17 +28,13 @@ jobs:
       with:
         node-version: '18'
         cache: 'npm'
-        cache-dependency-path: artist-generator/package-lock.json
+        cache-dependency-path: package-lock.json
         
     - name: Install dependencies
-      run: |
-        cd artist-generator
-        npm ci
+      run: npm ci
         
     - name: Build
-      run: |
-        cd artist-generator
-        npm run build-only
+      run: npm run build-only
         
     - name: Setup Pages
       uses: actions/configure-pages@v4
@@ -46,7 +42,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: artist-generator/dist
+        path: dist
         
     - name: Deploy to GitHub Pages
       id: deployment
