@@ -579,16 +579,53 @@ const presets = [
 const loadArtists = async () => {
   try {
     isLoading.value = true
-    const response = await fetch('/data/artists.json')
-    const data = await response.json()
-    artists.value = data.artists || []
-    console.log(`加载了 ${artists.value.length} 个画师`)
+    console.log('开始加载画师数据...')
+    console.log('当前URL:', window.location.href)
+    console.log('Base URL:', document.baseURI)
+    
+    // 尝试多个可能的路径
+    const possiblePaths = [
+      './data/artists.json',
+      '/data/artists.json',
+      '/artist-generator/data/artists.json',
+      'data/artists.json'
+    ]
+    
+    let loadSuccess = false
+    
+    for (const path of possiblePaths) {
+      try {
+        console.log(`尝试加载路径: ${path}`)
+        const response = await fetch(path)
+        console.log(`响应状态: ${response.status} ${response.statusText}`)
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data && data.artists && Array.isArray(data.artists) && data.artists.length > 0) {
+            artists.value = data.artists
+            console.log(`✅ 成功加载 ${artists.value.length} 个画师 (路径: ${path})`)
+            loadSuccess = true
+            break
+          } else {
+            console.warn(`⚠️ 数据格式不正确 (路径: ${path})`, data)
+          }
+        }
+      } catch (pathError) {
+        console.warn(`❌ 路径 ${path} 加载失败:`, pathError)
+      }
+    }
+    
+    if (!loadSuccess) {
+      throw new Error('所有路径都加载失败')
+    }
+    
   } catch (error) {
-    console.error('加载失败:', error)
-    // 使用测试数据
+    console.error('❌ 画师数据加载完全失败:', error)
+    console.warn('🔄 使用测试数据')
     artists.value = ['test_artist_1', 'test_artist_2', 'test_artist_3', 'test_artist_4', 'test_artist_5']
   } finally {
     isLoading.value = false
+    console.log(`最终加载结果: ${artists.value.length} 个画师`)
   }
 }
 
