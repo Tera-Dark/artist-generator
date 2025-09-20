@@ -35,9 +35,29 @@ export interface UserPreferences {
   }
 }
 
+// 画师对象类型
+export interface Artist {
+  name: string           // 主名称
+  other_names: string[]  // 别名数组
+  post_count: number     // 作品数量
+}
+
 // 画师数据类型
 export interface ArtistData {
-  artists: string[]
+  artists: Artist[]
+}
+
+// 搜索结果类型
+export interface SearchResult {
+  artists: Artist[]      // 匹配的画师
+  total: number         // 总匹配数
+  query: string         // 搜索查询
+}
+
+// 格式化显示类型
+export interface FormattedArtist {
+  displayName: string   // 格式化后的显示名称
+  originalArtist: Artist // 原始画师对象
 }
 
 // 生成配置类型

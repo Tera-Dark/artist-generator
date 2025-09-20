@@ -5,6 +5,7 @@ import type {
   GenerationResult, 
   GenerationConfig, 
   ArtistData,
+  Artist,
   ToastMessage 
 } from '@/types'
 
@@ -15,7 +16,7 @@ export const useGeneratorStore = defineStore('generator', () => {
   const showAdvancedSettings = ref(false)
   const showArtistLibrary = ref(false)
   const currentResult = ref<GenerationResult | null>(null)
-  const artists = ref<string[]>([])
+  const artists = ref<Artist[]>([])
   const toasts = ref<ToastMessage[]>([])
 
   // 预设配置
@@ -71,20 +72,63 @@ export const useGeneratorStore = defineStore('generator', () => {
   const loadArtists = async (): Promise<void> => {
     try {
       isLoading.value = true
-      const response = await fetch('/data/artists.json')
+      console.log('开始加载画师数据...')
       
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
+      // 尝试多个可能的路径
+      const possiblePaths = [
+        './data/artists.json',
+        '/data/artists.json',
+        '/artist-generator/data/artists.json',
+        'data/artists.json'
+      ]
+      
+      let loadSuccess = false
+      
+      for (const path of possiblePaths) {
+        try {
+          console.log(`尝试加载路径: ${path}`)
+          const response = await fetch(path)
+          console.log(`响应状态: ${response.status} ${response.statusText}`)
+          
+          if (response.ok) {
+            const data = await response.json()
+            // 新格式：直接是Artist数组
+            if (Array.isArray(data) && data.length > 0) {
+              artists.value = data as Artist[]
+              console.log(`✅ 成功加载 ${artists.value.length} 个画师 (路径: ${path})`)
+              loadSuccess = true
+              break
+            }
+            // 旧格式兼容：包装在artists属性中
+            else if (data && data.artists && Array.isArray(data.artists) && data.artists.length > 0) {
+              artists.value = data.artists
+              console.log(`✅ 成功加载 ${artists.value.length} 个画师 (旧格式兼容，路径: ${path})`)
+              loadSuccess = true
+              break
+            } else {
+              console.warn(`⚠️ 数据格式不正确 (路径: ${path})`, data)
+            }
+          }
+        } catch (pathError) {
+          console.warn(`❌ 路径 ${path} 加载失败:`, pathError)
+        }
       }
       
-      const data: ArtistData = await response.json()
-      artists.value = data.artists
+      if (!loadSuccess) {
+        throw new Error('所有路径都加载失败')
+      }
       
     } catch (error) {
-      console.error('加载失败:', error)
-      artists.value = []
+      console.error('❌ 画师数据加载完全失败:', error)
+      console.warn('🔄 使用测试数据')
+      artists.value = [
+        { name: 'test_artist_1', other_names: ['test1'], post_count: 100 },
+        { name: 'test_artist_2', other_names: ['test2'], post_count: 200 },
+        { name: 'test_artist_3', other_names: ['test3'], post_count: 300 }
+      ]
     } finally {
       isLoading.value = false
+      console.log(`最终加载结果: ${artists.value.length} 个画师`)
     }
   }
 
@@ -108,7 +152,8 @@ export const useGeneratorStore = defineStore('generator', () => {
       } while (usedIndices.has(randomIndex))
 
       usedIndices.add(randomIndex)
-      selectedArtists.push(artists.value[randomIndex])
+      // 使用画师的主名称
+      selectedArtists.push(artists.value[randomIndex].name)
       
       const weight = parseFloat(
         (Math.random() * (config.weightRange[1] - config.weightRange[0]) + 
@@ -145,6 +190,42 @@ export const useGeneratorStore = defineStore('generator', () => {
     }
   }
 
+  // 搜索画师功能
+  const searchArtists = (query: string): Artist[] => {
+    if (!query.trim()) return []
+    
+    const lowerQuery = query.toLowerCase().trim()
+    
+    return artists.value
+      .filter(artist => {
+        // 主名称匹配
+        if (artist.name.toLowerCase().includes(lowerQuery)) return true
+        // 别名匹配
+        return artist.other_names.some(name => 
+          name.toLowerCase().includes(lowerQuery)
+        )
+      })
+      .sort((a, b) => b.post_count - a.post_count) // 按作品数量降序排列
+  }
+
+  // 格式化画师显示
+  const formatArtist = (artist: Artist): string => {
+    const { name, other_names, post_count } = artist
+    
+    let otherNamesStr = ''
+    if (other_names.length > 0) {
+      if (other_names.length <= 4) {
+        otherNamesStr = other_names.join(',')
+      } else {
+        const shown = other_names.slice(0, 4).join(',')
+        const remaining = other_names.length - 4
+        otherNamesStr = `${shown}...等${remaining}个别名`
+      }
+    }
+    
+    return `${name} - ${otherNamesStr} - ${post_count}`
+  }
+
   return {
     // 状态
     isLoading,
@@ -163,6 +244,8 @@ export const useGeneratorStore = defineStore('generator', () => {
     // 动作
     loadArtists,
     generateArtists,
-    copyResult
+    copyResult,
+    searchArtists,
+    formatArtist
   }
 }) 
