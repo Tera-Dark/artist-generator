@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useGeneratorStore } from '@/stores/generator'
-import PresetGrid from '@/components/PresetGrid.vue'
 import SimpleTest from '@/components/SimpleTest.vue'
 </script>
 
