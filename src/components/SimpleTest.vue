@@ -105,7 +105,7 @@
             <div class="mode-icon">🤖</div>
             <div class="mode-info">
               <div class="mode-name">NAI模式</div>
-              <div class="mode-desc">权重::画师::格式</div>
+              <div class="mode-desc">权重::画师 ::格式</div>
             </div>
             <div class="mode-checkbox" :class="{ checked: naiMode }">
               <span v-if="naiMode">✓</span>
@@ -554,7 +554,7 @@ const generate = () => {
         return formatted
       } else if (naiMode.value) {
         const weight = selectedWeights[index]
-        return `${weight}::${artist}::`
+        return `${weight}::${artist} ::`
       } else {
         return `(${artist}:${selectedWeights[index]})`
       }
