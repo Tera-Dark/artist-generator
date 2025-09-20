@@ -1,35 +1,47 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{vue,js,ts,jsx,tsx}",
-  ],
+  content: ['./index.html', './src/**/*.{vue,js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
+        // 黑白金配色系统
         primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          800: '#3730a3',
-          900: '#312e81',
+          50: '#fffef7',
+          100: '#fffaeb',
+          200: '#fff2cc',
+          300: '#ffe699',
+          400: '#ffd640', // 温暖活力的金色
+          500: '#ffc700', // 主要金色
+          600: '#e6b300',
+          700: '#cc9900',
+          800: '#b38600',
+          900: '#997300',
         },
-        accent: {
-          50: '#faf5ff',
-          100: '#f3e8ff',
-          200: '#e9d5ff',
-          300: '#d8b4fe',
-          400: '#c084fc',
-          500: '#8b5cf6',
-          600: '#7c3aed',
-          700: '#6d28d9',
-          800: '#5b21b6',
-          900: '#4c1d95',
+        // 柔和灰度系统
+        neutral: {
+          50: '#f9f8f5',   // 米白背景
+          100: '#ffffff',  // 纯白容器
+          200: '#f5f5f5',  // 浅灰分割
+          300: '#e0e0e0',  // 边框灰
+          400: '#cccccc',  // 辅助灰
+          500: '#bdbdbd',  // 次要文本
+          600: '#757575',  // 描述文本
+          700: '#424242',  // 常规文本
+          800: '#2d2d2d',  // 主要文本
+          900: '#1a1a1a',  // 深色文本
+        },
+        // 功能色彩
+        success: {
+          50: '#f0f9f0',
+          500: '#4caf50',
+        },
+        warning: {
+          50: '#fff8e1',
+          500: '#ff9800',
+        },
+        error: {
+          50: '#ffebee',
+          500: '#f44336',
         },
       },
       fontFamily: {
@@ -61,8 +73,5 @@ export default {
       },
     },
   },
-  plugins: [
-    require('@tailwindcss/forms'),
-    require('@tailwindcss/typography'),
-  ],
-} 
+  plugins: [require('@tailwindcss/forms'), require('@tailwindcss/typography')],
+}

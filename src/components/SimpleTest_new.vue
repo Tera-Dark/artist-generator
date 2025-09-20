@@ -4,31 +4,18 @@
     <div class="top-nav">
       <button @click="showArtistLibrary = true" class="nav-btn">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path
-            d="M3 7V5C3 3.89543 3.89543 3 5 3H19C20.1046 3 21 3.89543 21 5V7"
-            stroke="currentColor"
-            stroke-width="2"
-          />
-          <path
-            d="M3 7H21L20 19C20 20.1046 19.1046 21 18 21H6C4.89543 21 4 20.1046 4 19L3 7Z"
-            stroke="currentColor"
-            stroke-width="2"
-          />
-          <path d="M10 11V17" stroke="currentColor" stroke-width="2" />
-          <path d="M14 11V17" stroke="currentColor" stroke-width="2" />
+          <path d="M3 7V5C3 3.89543 3.89543 3 5 3H19C20.1046 3 21 3.89543 21 5V7" stroke="currentColor" stroke-width="2"/>
+          <path d="M3 7H21L20 19C20 20.1046 19.1046 21 18 21H6C4.89543 21 4 20.1046 4 19L3 7Z" stroke="currentColor" stroke-width="2"/>
+          <path d="M10 11V17" stroke="currentColor" stroke-width="2"/>
+          <path d="M14 11V17" stroke="currentColor" stroke-width="2"/>
         </svg>
         <span>画师库</span>
       </button>
       <button @click="showHistory = true" class="nav-btn">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M12 8V12L16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-          <path
-            d="M3.05 11A9 9 0 1 1 3.05 13"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-          />
-          <path d="M3 4V9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          <path d="M12 8V12L16 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M3.05 11A9 9 0 1 1 3.05 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <path d="M3 4V9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
         <span>历史</span>
       </button>
@@ -61,19 +48,9 @@
             <div class="control-badge">{{ artistCount }}个</div>
           </div>
           <div class="number-control">
-            <button @click="artistCount = Math.max(1, artistCount - 1)" class="number-btn">
-              -
-            </button>
-            <input
-              v-model.number="artistCount"
-              type="number"
-              min="1"
-              max="20"
-              class="number-input"
-            />
-            <button @click="artistCount = Math.min(20, artistCount + 1)" class="number-btn">
-              +
-            </button>
+            <button @click="artistCount = Math.max(1, artistCount - 1)" class="number-btn">-</button>
+            <input v-model.number="artistCount" type="number" min="1" max="20" class="number-input">
+            <button @click="artistCount = Math.min(20, artistCount + 1)" class="number-btn">+</button>
           </div>
         </div>
 
@@ -89,7 +66,7 @@
               <span v-if="pureMode">✓</span>
             </div>
           </div>
-
+          
           <div class="mode-option" @click="toggleBracketMode" :class="{ active: bracketMode }">
             <div class="mode-icon">📦</div>
             <div class="mode-info">
@@ -123,15 +100,15 @@
                 <div class="slider-value">{{ weightMin }}</div>
               </div>
               <div class="slider-container">
-                <input
-                  v-model.number="weightMin"
-                  type="range"
-                  min="0.1"
-                  max="2.0"
-                  step="0.1"
+                <input 
+                  v-model.number="weightMin" 
+                  type="range" 
+                  min="0.1" 
+                  max="2.0" 
+                  step="0.1" 
                   class="slider"
                   @input="ensureWeightOrder"
-                />
+                >
                 <div class="slider-track"></div>
               </div>
             </div>
@@ -143,22 +120,22 @@
                 <div class="slider-value">{{ weightMax }}</div>
               </div>
               <div class="slider-container">
-                <input
-                  v-model.number="weightMax"
-                  type="range"
-                  min="0.1"
-                  max="2.0"
-                  step="0.1"
+                <input 
+                  v-model.number="weightMax" 
+                  type="range" 
+                  min="0.1" 
+                  max="2.0" 
+                  step="0.1" 
                   class="slider"
                   @input="ensureWeightOrder"
-                />
+                >
                 <div class="slider-track"></div>
               </div>
             </div>
           </div>
         </div>
       </div>
-
+      
       <!-- 作品数阈值控制 -->
       <div class="config-section">
         <div class="post-count-filter">
@@ -172,8 +149,8 @@
           <div class="filter-content" :class="{ disabled: !enableMinPostCount }">
             <div class="filter-input-group">
               <span class="filter-label">仅选择作品数≥</span>
-              <input
-                type="number"
+              <input 
+                type="number" 
                 v-model.number="minPostCount"
                 :disabled="!enableMinPostCount"
                 class="post-count-input"
@@ -193,7 +170,11 @@
 
     <!-- 主操作按钮 -->
     <div class="action-section">
-      <button @click="generate" :disabled="isLoading || artists.length === 0" class="generate-btn">
+      <button 
+        @click="generate"
+        :disabled="isLoading || artists.length === 0"
+        class="generate-btn"
+      >
         <div v-if="isLoading" class="loading-spinner"></div>
         <span>{{ isLoading ? '生成中...' : '生成画师组合' }}</span>
       </button>
@@ -203,8 +184,8 @@
     <div class="preset-section">
       <h3 class="preset-title">快速预设</h3>
       <div class="preset-grid">
-        <div
-          v-for="preset in presets"
+        <div 
+          v-for="preset in presets" 
           :key="preset.id"
           @click="applyPreset(preset)"
           class="preset-card"
@@ -273,7 +254,10 @@
     />
 
     <!-- 通知提示组件 -->
-    <NotificationToast :notifications="notifications" @remove="removeNotification" />
+    <NotificationToast
+      :notifications="notifications"
+      @remove="removeNotification"
+    />
   </div>
 </template>
 
@@ -333,23 +317,21 @@ const historyCurrentPage = ref(1)
 const historyPageSize = 20
 
 // 历史记录
-const history = ref<
-  Array<{
-    id: string
-    result: string
-    artists: string[]
-    timestamp: Date
-    params: {
-      count: number
-      minWeight: number
-      maxWeight: number
-      pureMode?: boolean
-      bracketMode?: boolean
-      naiMode?: boolean
-      minPostCount?: number
-    }
-  }>
->([])
+const history = ref<Array<{
+  id: string
+  result: string
+  artists: string[]
+  timestamp: Date
+  params: {
+    count: number
+    minWeight: number
+    maxWeight: number
+    pureMode?: boolean
+    bracketMode?: boolean
+    naiMode?: boolean
+    minPostCount?: number
+  }
+}>>([])
 
 // 通知系统
 interface ToastNotification {
@@ -397,7 +379,7 @@ const presets = [
     icon: '✨',
     description: '强烈风格混合',
     config: { countRange: [4, 8], weightRange: [0.5, 1.5], minPostCount: 0 },
-  },
+  }
 ]
 
 // 计算属性
@@ -414,11 +396,11 @@ const sortedArtists = computed(() => {
 
 const paginatedArtists = computed(() => {
   const list = sortedArtists.value
-
+  
   if (!showPagination.value) {
     return list
   }
-
+  
   const start = (currentPage.value - 1) * pageSize
   const end = start + pageSize
   return list.slice(start, end)
@@ -455,12 +437,12 @@ const toggleNaiMode = () => {
   }
 }
 
-const applyPreset = (preset: (typeof presets)[0]) => {
+const applyPreset = (preset: typeof presets[0]) => {
   const config = preset.config
   artistCount.value = Math.floor((config.countRange[0] + config.countRange[1]) / 2)
   weightMin.value = config.weightRange[0]
   weightMax.value = config.weightRange[1]
-
+  
   // 应用作品数阈值
   if (config.minPostCount && config.minPostCount > 0) {
     enableMinPostCount.value = true
@@ -469,7 +451,7 @@ const applyPreset = (preset: (typeof presets)[0]) => {
     enableMinPostCount.value = false
     minPostCount.value = 0
   }
-
+  
   lastUsedPreset.value = preset.id
 }
 
@@ -485,28 +467,28 @@ const generate = () => {
   const count = artistCount.value
   const selectedArtists: string[] = []
   const selectedWeights: number[] = []
-
+  
   // 根据作品数阈值筛选画师
   let availableArtists = artists.value
   if (enableMinPostCount.value && minPostCount.value > 0) {
-    availableArtists = artists.value.filter((artist) => artist.post_count >= minPostCount.value)
+    availableArtists = artists.value.filter(artist => artist.post_count >= minPostCount.value)
     if (availableArtists.length === 0) {
       displayNotification(`没有找到作品数≥${minPostCount.value}的画师`, 'error')
       return
     }
   }
-
+  
   const usedIndices = new Set<number>()
-
+  
   for (let i = 0; i < count && usedIndices.size < availableArtists.length; i++) {
     let randomIndex: number
     do {
       randomIndex = Math.floor(Math.random() * availableArtists.length)
     } while (usedIndices.has(randomIndex))
-
+    
     usedIndices.add(randomIndex)
     selectedArtists.push(availableArtists[randomIndex].name)
-
+    
     if (!pureMode.value && !bracketMode.value && !naiMode.value) {
       let weight: number
       if (lastUsedPreset.value === 'primary') {
@@ -517,7 +499,7 @@ const generate = () => {
         }
       } else {
         weight = parseFloat(
-          (Math.random() * (weightMax.value - weightMin.value) + weightMin.value).toFixed(1),
+          (Math.random() * (weightMax.value - weightMin.value) + weightMin.value).toFixed(1)
         )
       }
       selectedWeights.push(weight)
@@ -531,15 +513,15 @@ const generate = () => {
         }
       } else {
         weight = parseFloat(
-          (Math.random() * (weightMax.value - weightMin.value) + weightMin.value).toFixed(1),
+          (Math.random() * (weightMax.value - weightMin.value) + weightMin.value).toFixed(1)
         )
       }
       selectedWeights.push(weight)
     }
   }
-
+  
   generatedArtists.value = selectedArtists
-
+  
   // 格式化结果
   result.value = selectedArtists
     .map((artist, index) => {
@@ -560,7 +542,7 @@ const generate = () => {
       }
     })
     .join(', ')
-
+  
   saveToHistory()
   
   // 显示生成成功提示
@@ -580,8 +562,8 @@ const saveToHistory = () => {
       pureMode: pureMode.value,
       bracketMode: bracketMode.value,
       naiMode: naiMode.value,
-      minPostCount: enableMinPostCount.value ? minPostCount.value : 0,
-    },
+      minPostCount: enableMinPostCount.value ? minPostCount.value : 0
+    }
   }
   history.value.unshift(historyItem)
   if (history.value.length > 20) {
@@ -589,7 +571,7 @@ const saveToHistory = () => {
   }
 }
 
-const restoreFromHistory = (item: (typeof history.value)[0]) => {
+const restoreFromHistory = (item: typeof history.value[0]) => {
   result.value = item.result
   generatedArtists.value = item.artists
   artistCount.value = item.params.count
@@ -598,7 +580,7 @@ const restoreFromHistory = (item: (typeof history.value)[0]) => {
   pureMode.value = item.params.pureMode || false
   bracketMode.value = item.params.bracketMode || false
   naiMode.value = item.params.naiMode || false
-
+  
   if (item.params.minPostCount && item.params.minPostCount > 0) {
     enableMinPostCount.value = true
     minPostCount.value = item.params.minPostCount
@@ -606,7 +588,7 @@ const restoreFromHistory = (item: (typeof history.value)[0]) => {
     enableMinPostCount.value = false
     minPostCount.value = 0
   }
-
+  
   showHistory.value = false
   displayNotification('已恢复历史记录参数', 'success')
 }
@@ -625,27 +607,30 @@ let searchTimeout: NodeJS.Timeout | null = null
 
 const handleSearch = (query: string) => {
   searchQuery.value = query
-
+  
   if (searchTimeout) {
     clearTimeout(searchTimeout)
   }
-
+  
   if (!query.trim()) {
     filteredArtists.value = []
     isLoadingArtists.value = false
     return
   }
-
+  
   isLoadingArtists.value = true
-
+  
   searchTimeout = setTimeout(() => {
     const lowerQuery = query.toLowerCase().trim()
-
-    filteredArtists.value = artists.value.filter((artist) => {
-      if (artist.name.toLowerCase().includes(lowerQuery)) return true
-      return artist.other_names.some((name) => name.toLowerCase().includes(lowerQuery))
-    })
-
+    
+    filteredArtists.value = artists.value
+      .filter(artist => {
+        if (artist.name.toLowerCase().includes(lowerQuery)) return true
+        return artist.other_names.some(name => 
+          name.toLowerCase().includes(lowerQuery)
+        )
+      })
+    
     currentPage.value = 1
     isLoadingArtists.value = false
   }, 300)
@@ -665,13 +650,13 @@ const handleSort = (field: 'name' | 'postCount') => {
 const sortArtists = (artistList: Artist[]): Artist[] => {
   return [...artistList].sort((a, b) => {
     let comparison = 0
-
+    
     if (sortBy.value === 'name') {
       comparison = a.name.localeCompare(b.name, 'zh-CN', { numeric: true })
     } else if (sortBy.value === 'postCount') {
       comparison = a.post_count - b.post_count
     }
-
+    
     return sortOrder.value === 'asc' ? comparison : -comparison
   })
 }
@@ -705,20 +690,16 @@ const copyArtistName = async (name: string) => {
 }
 
 // 通知系统
-const displayNotification = (
-  message: string,
-  type: ToastNotification['type'] = 'info',
-  duration = 3000,
-) => {
+const displayNotification = (message: string, type: ToastNotification['type'] = 'info', duration = 3000) => {
   const notification: ToastNotification = {
     id: Date.now().toString(),
     message,
     type,
-    duration,
+    duration
   }
-
+  
   notifications.value.push(notification)
-
+  
   if (duration > 0) {
     setTimeout(() => {
       removeNotification(notification.id)
@@ -727,7 +708,7 @@ const displayNotification = (
 }
 
 const removeNotification = (id: string) => {
-  const index = notifications.value.findIndex((n) => n.id === id)
+  const index = notifications.value.findIndex(n => n.id === id)
   if (index > -1) {
     notifications.value.splice(index, 1)
   }
@@ -742,121 +723,82 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* 现代化美化样式 */
+/* 简化的样式，保留核心样式 */
 .app-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 24px;
-  font-family:
-    'Inter',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    system-ui,
-    sans-serif;
-  background: #f9fafb;
-  min-height: 100vh;
-  position: relative;
-}
-
-.app-container > *:not(.modal-overlay) {
-  position: relative;
-  z-index: 1;
+  padding: 20px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 }
 
 /* 顶部导航 */
 .top-nav {
   display: flex;
   justify-content: center;
-  gap: 20px;
-  margin-bottom: 40px;
-  padding: 20px;
-  background: #ffffff;
-  border-radius: 20px;
-  border: none;
-  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.05);
+  gap: 16px;
+  margin-bottom: 32px;
 }
 
 .nav-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 16px 28px;
-  background: #ffffff;
-  border: 1px solid #e0e0e0;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  border: none;
   border-radius: 12px;
-  color: #2d2d2d;
+  color: #ffffff;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.25);
 }
 
 .nav-btn:hover {
-  background: #ffc700;
-  border-color: #ffc700;
-  color: #2d2d2d;
   transform: translateY(-2px);
-  box-shadow: 0px 6px 20px rgba(255, 199, 0, 0.25);
-}
-
-.nav-btn:active {
-  transform: translateY(-1px) scale(0.98);
+  box-shadow: 0 4px 16px rgba(251, 191, 36, 0.35);
 }
 
 /* 主标题 */
 .header-section {
   text-align: center;
-  margin-bottom: 48px;
-  padding: 32px 24px;
-  background: #ffffff;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  position: relative;
+  margin-bottom: 40px;
 }
 
 .title-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  margin-bottom: 12px;
+  gap: 16px;
+  margin-bottom: 8px;
 }
 
 .app-icon {
-  font-size: 48px;
+  font-size: 32px;
 }
 
 .app-title {
-  font-size: 42px;
-  font-weight: 800;
-  color: #000000;
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a1a1a;
   margin: 0;
 }
 
 .app-subtitle {
-  font-size: 18px;
+  font-size: 16px;
   color: #666666;
   margin: 0;
-  font-weight: 500;
-  opacity: 0.8;
 }
 
 /* 控制卡片 */
 .control-card {
   background: #ffffff;
-  border: none;
-  border-radius: 24px;
-  padding: 40px;
-  margin-bottom: 32px;
-  box-shadow: 0px 8px 30px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-}
-
-.control-card:hover {
-  box-shadow: 0px 12px 40px rgba(0, 0, 0, 0.12);
+  border: 1px solid #e0e6ed;
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .card-header {
@@ -891,43 +833,30 @@ onMounted(async () => {
 
 /* 数量控制 */
 .control-section {
-  background: #ffffff;
-  border: none;
-  border-radius: 20px;
-  padding: 24px;
-  margin-bottom: 24px;
-  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-}
-
-.control-section:hover {
-  box-shadow: 0px 8px 30px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .control-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
 }
 
 .control-label {
-  font-size: 18px;
-  font-weight: 700;
-  color: inherit;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
 }
 
 .control-badge {
-  background: #ffc700;
-  color: #2d2d2d;
-  padding: 8px 16px;
-  border-radius: 999px;
-  font-size: 16px;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #ffffff;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
   font-weight: 600;
-  box-shadow: 0px 4px 15px rgba(255, 199, 0, 0.25);
-  transition: all 0.2s ease;
 }
 
 .number-control {
@@ -938,46 +867,37 @@ onMounted(async () => {
 }
 
 .number-btn {
-  width: 48px;
-  height: 48px;
-  background: #ffc700;
-  border: none;
-  border-radius: 12px;
-  color: #2d2d2d;
-  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 8px;
+  font-size: 18px;
   font-weight: 600;
+  color: #374151;
   cursor: pointer;
   transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0px 2px 8px rgba(255, 199, 0, 0.2);
 }
 
 .number-btn:hover {
-  background: #ffd640;
-  box-shadow: 0px 4px 15px rgba(255, 199, 0, 0.3);
-  transform: translateY(-1px);
+  border-color: #fbbf24;
+  color: #f59e0b;
 }
 
 .number-input {
   width: 80px;
-  height: 48px;
+  height: 40px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
   text-align: center;
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
-  background: #ffffff;
-  color: #2d2d2d;
-  outline: none;
-  transition: all 0.2s ease;
-  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.05);
+  color: #374151;
 }
 
 .number-input:focus {
-  border-color: #ffc700;
-  box-shadow: 0px 4px 15px rgba(255, 199, 0, 0.15);
+  outline: none;
+  border-color: #fbbf24;
 }
 
 /* 模式控制 */
@@ -991,26 +911,22 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 20px;
-  background: #ffffff;
-  border: 1px solid #e0e0e0;
-  border-radius: 16px;
+  padding: 16px;
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .mode-option:hover {
-  background: #fff2cc;
-  border-color: #ffc700;
-  box-shadow: 0px 4px 15px rgba(255, 199, 0, 0.15);
+  border-color: #fbbf24;
+  background: #fffbeb;
 }
 
 .mode-option.active {
-  background: #ffc700;
-  color: #2d2d2d;
-  border-color: #ffc700;
-  box-shadow: 0px 4px 15px rgba(255, 199, 0, 0.25);
+  border-color: #fbbf24;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
 }
 
 .mode-icon {
@@ -1025,33 +941,31 @@ onMounted(async () => {
 .mode-name {
   font-size: 14px;
   font-weight: 600;
-  color: #2d2d2d;
+  color: #1f2937;
   margin-bottom: 2px;
 }
 
 .mode-desc {
   font-size: 12px;
-  color: #757575;
+  color: #6b7280;
 }
 
 .mode-checkbox {
   width: 20px;
   height: 20px;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
+  border: 2px solid #d1d5db;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
   color: #ffffff;
   transition: all 0.2s ease;
-  background: #ffffff;
 }
 
 .mode-checkbox.checked {
-  background: #ffc700;
-  color: #2d2d2d;
-  border-color: #ffc700;
+  background: #fbbf24;
+  border-color: #f59e0b;
 }
 
 /* 权重控制 */
@@ -1080,27 +994,25 @@ onMounted(async () => {
 .slider-label {
   font-size: 14px;
   font-weight: 600;
-  color: #000000;
+  color: #374151;
 }
 
 .slider-value {
-  background: #ffc700;
-  color: #2d2d2d;
-  padding: 6px 10px;
-  border-radius: 8px;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
   min-width: 40px;
   text-align: center;
-  box-shadow: 0px 2px 6px rgba(255, 199, 0, 0.2);
 }
 
 .slider-container {
   position: relative;
-  height: 8px;
-  background: #f5f5f5;
-  border: none;
-  border-radius: 4px;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
 }
 
 .slider {
@@ -1111,7 +1023,7 @@ onMounted(async () => {
   height: 100%;
   background: transparent;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 3px;
   -webkit-appearance: none;
 }
 
@@ -1119,28 +1031,25 @@ onMounted(async () => {
   -webkit-appearance: none;
   width: 20px;
   height: 20px;
-  background: #ffc700;
-  border: none;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
   border-radius: 50%;
   cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   transition: all 0.2s ease;
-  box-shadow: 0px 2px 8px rgba(255, 199, 0, 0.3);
 }
 
 .slider::-webkit-slider-thumb:hover {
-  background: #ffb700;
   transform: scale(1.1);
-  box-shadow: 0px 4px 12px rgba(255, 199, 0, 0.4);
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
 }
 
 /* 作品数筛选控件 */
 .post-count-filter {
   background: #ffffff;
-  border: none;
-  border-radius: 16px;
-  padding: 20px;
+  border: 1px solid #e0e6ed;
+  border-radius: 12px;
+  padding: 16px;
   margin-bottom: 16px;
-  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .filter-header {
@@ -1176,33 +1085,29 @@ onMounted(async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #f5f5f5;
-  border: none;
-  transition: 0.4s;
+  background-color: #ccc;
+  transition: .4s;
   border-radius: 24px;
 }
 
 .toggle-slider:before {
   position: absolute;
-  content: '';
+  content: "";
   height: 18px;
   width: 18px;
   left: 3px;
   bottom: 3px;
   background-color: white;
-  transition: 0.4s;
+  transition: .4s;
   border-radius: 50%;
-  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .filter-toggle input:checked + .toggle-slider {
-  background-color: #ffc700;
-  border: none;
+  background-color: #fbbf24;
 }
 
 .filter-toggle input:checked + .toggle-slider:before {
   transform: translateX(20px);
-  box-shadow: 0px 2px 6px rgba(255, 199, 0, 0.3);
 }
 
 .filter-content {
@@ -1221,90 +1126,80 @@ onMounted(async () => {
   margin-bottom: 8px;
 }
 
-.filter-label,
-.filter-unit {
+.filter-label, .filter-unit {
   font-size: 14px;
   color: #666666;
 }
 
 .post-count-input {
   width: 100px;
-  padding: 8px 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
   font-size: 14px;
-  font-weight: 600;
   text-align: center;
-  color: #2d2d2d;
-  transition: all 0.2s ease;
-  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.2s ease;
 }
 
 .post-count-input:focus {
   outline: none;
-  border-color: #ffc700;
-  box-shadow: 0px 2px 8px rgba(255, 199, 0, 0.15);
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1);
 }
 
 .post-count-input:disabled {
-  background-color: #f5f5f5;
-  color: #999999;
-  border-color: #e0e0e0;
+  background-color: #f3f4f6;
+  color: #9ca3af;
 }
 
 .filter-hint {
   font-size: 12px;
-  color: #2d2d2d;
-  background: #fff2cc;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border-left: 3px solid #ffc700;
+  color: #f59e0b;
+  background: #fffbeb;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border-left: 3px solid #f59e0b;
 }
 
 /* 主操作按钮 */
 .action-section {
-  margin-bottom: 40px;
-  position: relative;
+  margin-bottom: 32px;
 }
 
 .generate-btn {
   width: 100%;
-  height: 64px;
-  background: #ffc700;
+  height: 56px;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
   border: none;
   border-radius: 16px;
-  color: #2d2d2d;
-  font-size: 18px;
+  color: #ffffff;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(251, 191, 36, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 12px;
-  text-transform: none;
-  letter-spacing: 0.5px;
-  box-shadow: 0px 6px 20px rgba(255, 199, 0, 0.3);
 }
 
 .generate-btn:hover:not(:disabled) {
-  background: #ffb700;
   transform: translateY(-2px);
-  box-shadow: 0px 8px 25px rgba(255, 199, 0, 0.4);
+  box-shadow: 0 8px 24px rgba(251, 191, 36, 0.35);
 }
 
 .generate-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
-  box-shadow: 0px 6px 20px rgba(255, 199, 0, 0.15);
 }
 
 .loading-spinner {
   width: 20px;
   height: 20px;
-  border: 2px solid #e0e0e0;
-  border-top: 2px solid #ffc700;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid #ffffff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -1317,52 +1212,45 @@ onMounted(async () => {
 
 /* 预设区域 */
 .preset-section {
-  margin-bottom: 40px;
-  padding: 32px;
-  background: #ffffff;
-  border: none;
-  border-radius: 20px;
-  box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.05);
+  margin-bottom: 32px;
 }
 
 .preset-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: #000000;
-  margin: 0 0 20px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 16px 0;
   text-align: center;
 }
 
 .preset-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
 }
 
 .preset-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 20px;
+  gap: 12px;
+  padding: 16px;
   background: #ffffff;
-  border: 1px solid #e0e0e0;
-  border-radius: 16px;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .preset-card:hover {
-  background: #fff2cc;
-  border-color: #ffc700;
-  box-shadow: 0px 4px 15px rgba(255, 199, 0, 0.15);
+  border-color: #fbbf24;
+  background: #fffbeb;
+  transform: translateY(-2px);
 }
 
 .preset-card.active {
-  background: #ffc700;
-  color: #2d2d2d;
-  border-color: #ffc700;
-  box-shadow: 0px 4px 15px rgba(255, 199, 0, 0.25);
+  border-color: #fbbf24;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.15);
 }
 
 .preset-icon {
@@ -1377,74 +1265,69 @@ onMounted(async () => {
 .preset-name {
   font-size: 14px;
   font-weight: 600;
-  color: #2d2d2d;
+  color: #1f2937;
   margin-bottom: 2px;
 }
 
 .preset-desc {
   font-size: 12px;
-  color: #757575;
+  color: #6b7280;
   line-height: 1.3;
 }
 
 /* 结果区域 */
 .result-section {
   background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 28px;
-  margin-bottom: 32px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  position: relative;
+  border: 1px solid #e0e6ed;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .result-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .result-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #000000;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
   margin: 0;
 }
 
 .copy-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  background: #ffffff;
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
-  color: #2d2d2d;
-  font-size: 13px;
+  gap: 6px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .copy-btn:hover {
-  background: #ffc700;
-  border-color: #ffc700;
-  color: #2d2d2d;
   transform: translateY(-1px);
-  box-shadow: 0px 4px 15px rgba(255, 199, 0, 0.25);
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.25);
 }
 
 .result-content {
-  background: #ffffff;
-  border: 1px solid #000000;
-  border-radius: 4px;
-  padding: 20px;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
-  font-size: 15px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
   line-height: 1.6;
-  color: #000000;
+  color: #1f2937;
   word-break: break-all;
   white-space: pre-wrap;
 }
@@ -1454,30 +1337,30 @@ onMounted(async () => {
   .app-container {
     padding: 16px;
   }
-
+  
   .top-nav {
     position: static;
     justify-content: center;
     margin-bottom: 24px;
   }
-
+  
   .title-row {
     flex-direction: column;
     gap: 8px;
   }
-
+  
   .app-title {
     font-size: 24px;
   }
-
+  
   .weight-controls {
     grid-template-columns: 1fr;
   }
-
+  
   .mode-controls {
     grid-template-columns: 1fr;
   }
-
+  
   .preset-grid {
     grid-template-columns: 1fr;
   }
