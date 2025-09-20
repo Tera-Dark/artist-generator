@@ -1188,7 +1188,7 @@ const formatAliases = (other_names: string[]): string => {
   return result
 }
 
-// 作品数格式化缓存
+// 作品数格式化缓存 - 清除旧缓存以应用修复
 const countCache = new Map<number, string>()
 
 // 格式化作品数量
@@ -1199,9 +1199,13 @@ const formatPostCount = (count: number): string => {
   
   let result: string
   if (count >= 10000) {
-    result = `${(count / 10000).toFixed(1)}w+`
+    // 向下取整到一位小数，避免四舍五入
+    const wanValue = Math.floor(count / 1000) / 10
+    result = `${wanValue}w+`
   } else if (count >= 1000) {
-    result = `${(count / 1000).toFixed(1)}k+`
+    // 向下取整到一位小数，避免四舍五入
+    const kValue = Math.floor(count / 100) / 10
+    result = `${kValue}k+`
   } else {
     result = count.toString()
   }
