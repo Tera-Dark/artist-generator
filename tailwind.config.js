@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{vue,js,ts,jsx,tsx}'],
   theme: {
     extend: {
@@ -19,16 +20,16 @@ export default {
         },
         // 柔和灰度系统
         neutral: {
-          50: '#f9f8f5',   // 米白背景
-          100: '#ffffff',  // 纯白容器
-          200: '#f5f5f5',  // 浅灰分割
-          300: '#e0e0e0',  // 边框灰
-          400: '#cccccc',  // 辅助灰
-          500: '#bdbdbd',  // 次要文本
-          600: '#757575',  // 描述文本
-          700: '#424242',  // 常规文本
-          800: '#2d2d2d',  // 主要文本
-          900: '#1a1a1a',  // 深色文本
+          50: '#f9f8f5', // 米白背景
+          100: '#ffffff', // 纯白容器
+          200: '#f5f5f5', // 浅灰分割
+          300: '#e0e0e0', // 边框灰
+          400: '#cccccc', // 辅助灰
+          500: '#bdbdbd', // 次要文本
+          600: '#757575', // 描述文本
+          700: '#424242', // 常规文本
+          800: '#2d2d2d', // 主要文本
+          900: '#1a1a1a', // 深色文本
         },
         // 功能色彩
         success: {
@@ -73,5 +74,8 @@ export default {
       },
     },
   },
-  plugins: [require('@tailwindcss/forms'), require('@tailwindcss/typography')],
+  plugins: [
+    require('@tailwindcss/forms')({ strategy: 'class' }),
+    require('@tailwindcss/typography'),
+  ],
 }

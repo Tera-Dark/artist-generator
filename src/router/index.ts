@@ -1,11 +1,28 @@
 import { createRouter, createWebHistory } from 'vue-router'
+// 统一路由懒加载
+const Home = () => import('../views/Home.vue')
+const ConceptBlueprint = () => import('../views/ConceptBlueprint.vue')
+const Library = () => import('../views/Library.vue')
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    // 当前项目为单页应用，暂时不需要路由
-    // 如需添加新页面，可在此处配置路由
-  ],
+    {
+      path: '/',
+      name: 'home',
+      component: Home
+    },
+  {
+    path: '/library',
+    name: 'library',
+    component: Library
+  },
+  {
+    path: '/concept',
+    name: 'concept',
+    component: ConceptBlueprint
+  }
+]
 })
 
 export default router
