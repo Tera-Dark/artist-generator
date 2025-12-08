@@ -24,7 +24,8 @@ const messages = {
             confirm: '确认',
             delete: '删除',
             edit: '编辑',
-            quick: '快速'
+            quick: '快速',
+            uploading: '上传中...'
         },
         settings: {
             title: '设置',
@@ -98,6 +99,12 @@ const messages = {
         admin: {
             dashboard: '管理后台',
             pending: '待审核',
+            my_submissions: '我的提交',
+            favorites: '收藏夹',
+            subtitle: '管理社区提交与内容',
+            no_submissions: '暂无提交记录',
+            no_favorites: '暂无收藏内容，快去探索吧！',
+            view_github: '在 GitHub 查看',
             published: '已发布',
             rejected: '已拒绝',
             drafts: '草稿箱',
@@ -109,7 +116,9 @@ const messages = {
             no_drafts: '暂无草稿',
             reject_reason: '拒绝理由:',
             reject_reason_ph: '质量标准',
-            tags_label: '标签 (逗号分隔)'
+            tags_label: '标签 (逗号分隔)',
+            edit_content: '编辑内容',
+            author: '作者'
         }
     },
     en: {
@@ -135,7 +144,8 @@ const messages = {
             confirm: 'Confirm',
             delete: 'Delete',
             edit: 'Edit',
-            quick: 'Quick'
+            quick: 'Quick',
+            uploading: 'Uploading...'
         },
         settings: {
             title: 'Settings',
@@ -220,7 +230,9 @@ const messages = {
             no_drafts: 'No drafts',
             reject_reason: 'Reject reason:',
             reject_reason_ph: 'Quality standards',
-            tags_label: 'Tags (comma separated)'
+            tags_label: 'Tags (comma separated)',
+            edit_content: 'Edit Content',
+            author: 'Author'
         }
     }
 }

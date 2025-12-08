@@ -16,4 +16,16 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor': ['vue', 'vue-router', 'pinia', 'vue-i18n'],
+          'octokit': ['@octokit/rest'],
+          'icons': ['lucide-vue-next'],
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000
+  }
 })

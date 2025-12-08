@@ -2,9 +2,6 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
-/* Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
 /* Custom Components - 黑白黄极简工业风设计系统 */
 @layer components {
   /* Base Typography & Layout Overrides */

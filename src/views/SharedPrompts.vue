@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useGeneratorStore } from '@/stores/generator'
 import AppHeader from '@/components/common/AppHeader.vue'
-import { Github, Upload, X, Image as ImageIcon, Heart } from 'lucide-vue-next'
+import { Github, Upload, X, Image as ImageIcon, Heart, User } from 'lucide-vue-next'
 import type { SharedPrompt } from '@/types'
 
 const store = useGeneratorStore()
@@ -237,28 +237,41 @@ watch(showSubmitModal, (val) => {
             :key="item.id"
             class="card p-0 flex flex-col group hover:-translate-y-1 transition-transform duration-200 relative"
           >
-            <button
-              @click.stop="store.toggleFavorite(item)"
-              class="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 dark:bg-neutral-900/80 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-              :class="store.isFavorite(item.id) ? 'text-red-500' : 'text-neutral-400 hover:text-red-400'"
-              :title="store.isFavorite(item.id) ? 'Remove from favorites' : 'Add to favorites'"
-            >
-              <Heart :class="{'fill-current': store.isFavorite(item.id)}" :size="20" />
-            </button>
+            <!-- Image Area with Favorite Button Overlay -->
+            <div class="relative w-full aspect-video bg-neutral-100 dark:bg-neutral-800 border-b-2 border-neutral-900 dark:border-neutral-100 overflow-hidden group-inner">
+               <img
+                 v-if="item.image"
+                 :src="item.image"
+                 class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                 alt="Preview"
+                 loading="lazy"
+               />
+               <div v-else class="w-full h-full flex items-center justify-center text-neutral-300 dark:text-neutral-700">
+                  <ImageIcon class="w-12 h-12" />
+               </div>
 
-            <div class="p-6 flex-1 flex flex-col">
-              <div class="flex items-start justify-between mb-3">
-                <h3 class="text-xl font-bold truncate pr-3" :title="item.title">{{ item.title || t('share.untitled') }}</h3>
-                <span class="inline-flex items-center px-2 py-1 text-xs font-bold border border-neutral-900 dark:border-neutral-100 bg-neutral-100 dark:bg-neutral-800 uppercase tracking-wider">
+               <button
+                  @click.stop="store.toggleFavorite(item)"
+                  class="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/90 dark:bg-neutral-900/90 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors shadow-sm"
+                  :class="store.isFavorite(item.id) ? 'text-red-500' : 'text-neutral-400 hover:text-red-400'"
+                  :title="store.isFavorite(item.id) ? 'Remove from favorites' : 'Add to favorites'"
+                >
+                  <Heart :class="{'fill-current': store.isFavorite(item.id)}" :size="20" />
+                </button>
+            </div>
+
+            <div class="p-5 flex-1 flex flex-col">
+              <div class="flex items-start justify-between mb-2 gap-2">
+                <h3 class="text-lg font-bold truncate flex-1" :title="item.title">{{ item.title || t('share.untitled') }}</h3>
+                <span class="inline-flex items-center px-2 py-1 text-xs font-bold border border-neutral-900 dark:border-neutral-100 bg-neutral-100 dark:bg-neutral-800 uppercase tracking-wider whitespace-nowrap">
                   {{ item.model }}
                 </span>
               </div>
 
-              <div class="text-sm text-neutral-500 mb-4 font-mono">By {{ item.username || item.author || 'Anonymous' }}</div>
+              <div class="text-xs text-neutral-500 mb-3 font-mono">By {{ item.username || item.author || 'Anonymous' }}</div>
 
-              <div class="relative flex-1 mb-4 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-100 dark:border-neutral-800 p-4 text-sm font-mono leading-relaxed h-32 overflow-hidden shadow-inner">
-                <div class="line-clamp-4 break-all opacity-80 group-hover:opacity-100 transition-opacity">{{ item.prompt }}</div>
-                <div class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-neutral-50 dark:from-neutral-950 to-transparent pointer-events-none"></div>
+              <div class="relative flex-1 mb-4 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-100 dark:border-neutral-800 p-3 text-sm font-mono leading-relaxed h-24 overflow-hidden shadow-inner">
+                <div class="line-clamp-3 break-all opacity-80 group-hover:opacity-100 transition-opacity">{{ item.prompt }}</div>
               </div>
 
               <div class="flex flex-wrap gap-2 mt-auto">
@@ -295,76 +308,98 @@ watch(showSubmitModal, (val) => {
     <!-- Detail Modal -->
     <div v-if="showDetailModal && selectedPrompt" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       <div class="absolute inset-0 bg-neutral-900/80 backdrop-blur-sm" @click="showDetailModal = false"></div>
-      <div class="relative w-full max-w-3xl bg-white dark:bg-neutral-900 border-4 border-neutral-900 dark:border-neutral-100 p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] max-h-[90vh] overflow-y-auto">
-        <button @click="showDetailModal = false" class="absolute top-4 right-4 p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors">
-          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-        </button>
+      <div class="relative w-full max-w-5xl bg-white dark:bg-neutral-900 border-4 border-neutral-900 dark:border-neutral-100 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] max-h-[90vh] overflow-hidden flex flex-col">
 
-        <div class="mb-8 pr-10">
-          <div class="flex items-center gap-3 mb-2">
-            <h2 class="text-3xl font-black">{{ selectedPrompt.title }}</h2>
-            <button
-              @click="store.toggleFavorite(selectedPrompt)"
-              class="p-1 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-              :class="store.isFavorite(selectedPrompt.id) ? 'text-red-500' : 'text-neutral-400 hover:text-red-400'"
-            >
-              <Heart :class="{'fill-current': store.isFavorite(selectedPrompt.id)}" :size="28" />
-            </button>
-          </div>
-          <div class="flex items-center gap-4 text-sm text-neutral-500">
-            <span class="font-bold flex items-center gap-1">
-              <span class="w-4 h-4 bg-neutral-300 rounded-full block"></span>
-              {{ selectedPrompt.username || selectedPrompt.author }}
-            </span>
-            <span>·</span>
-            <span>{{ new Date(selectedPrompt.created_at || 0).toLocaleDateString() }}</span>
-            <span class="px-2 py-0.5 border border-neutral-300 dark:border-neutral-700 text-xs rounded">{{ selectedPrompt.model }}</span>
-          </div>
+        <!-- Modal Header with Close -->
+        <div class="flex items-center justify-between p-6 border-b-2 border-neutral-100 dark:border-neutral-800 shrink-0">
+           <h2 class="text-2xl font-black truncate flex-1 pr-4">{{ selectedPrompt.title }}</h2>
+           <button @click="showDetailModal = false" class="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors">
+              <X class="w-6 h-6" />
+           </button>
         </div>
 
-        <div class="space-y-6">
-          <div>
-            <div class="flex items-center justify-between mb-2">
-               <label class="text-sm font-bold uppercase tracking-wider">Prompt</label>
-               <button @click="copyText(selectedPrompt.prompt)" class="text-xs font-bold text-primary-600 hover:underline">COPY ALL</button>
+        <div class="flex-1 overflow-y-auto p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 h-full">
+            <!-- Left: Image & Meta -->
+            <div class="space-y-6">
+               <div class="w-full bg-neutral-100 dark:bg-neutral-800 border-2 border-neutral-900 dark:border-neutral-700 aspect-square sm:aspect-video md:aspect-auto md:h-[400px] flex items-center justify-center overflow-hidden relative">
+                  <img v-if="selectedPrompt.image" :src="selectedPrompt.image" class="w-full h-full object-contain bg-neutral-950/5" />
+                  <div v-else class="text-neutral-300 dark:text-neutral-700">
+                     <ImageIcon class="w-20 h-20" />
+                  </div>
+
+                  <!-- Favorite Button on Image -->
+                  <button
+                    @click="store.toggleFavorite(selectedPrompt)"
+                    class="absolute top-4 right-4 p-3 rounded-full bg-white/90 dark:bg-neutral-900/90 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors shadow-md"
+                    :class="store.isFavorite(selectedPrompt.id) ? 'text-red-500' : 'text-neutral-400 hover:text-red-400'"
+                  >
+                    <Heart :class="{'fill-current': store.isFavorite(selectedPrompt.id)}" :size="24" />
+                  </button>
+               </div>
+
+               <!-- Meta Info -->
+               <div class="flex flex-wrap items-center gap-4 text-sm text-neutral-500 bg-neutral-50 dark:bg-neutral-950 p-4 border border-neutral-200 dark:border-neutral-800">
+                  <span class="font-bold flex items-center gap-2">
+                    <User class="w-4 h-4" />
+                    {{ selectedPrompt.username || selectedPrompt.author }}
+                  </span>
+                  <span class="w-px h-4 bg-neutral-300"></span>
+                  <span>{{ new Date(selectedPrompt.created_at || 0).toLocaleDateString() }}</span>
+                  <span class="w-px h-4 bg-neutral-300"></span>
+                  <span class="px-2 py-0.5 border border-neutral-300 dark:border-neutral-700 text-xs rounded font-bold uppercase">{{ selectedPrompt.model }}</span>
+               </div>
+
+               <!-- Tags -->
+                <div>
+                  <label class="block text-xs font-bold uppercase tracking-wider mb-2 text-neutral-400">{{ t('share.form_tags') }}</label>
+                  <div class="flex flex-wrap gap-2">
+                    <span
+                      v-for="t in selectedPrompt.tags"
+                      :key="t"
+                      class="px-3 py-1 border border-neutral-900 dark:border-neutral-100 text-xs font-bold uppercase hover:bg-neutral-900 hover:text-white dark:hover:bg-white dark:hover:text-neutral-900 transition-colors cursor-default"
+                    >
+                      #{{ t }}
+                    </span>
+                  </div>
+                </div>
             </div>
-            <div class="bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-800 p-6 font-mono text-sm leading-relaxed whitespace-pre-wrap select-all">
-              {{ selectedPrompt.prompt }}
+
+            <!-- Right: Prompt & Description -->
+            <div class="flex flex-col h-full">
+               <div class="flex-1 flex flex-col min-h-0">
+                  <div class="flex items-center justify-between mb-2">
+                     <label class="text-sm font-bold uppercase tracking-wider">{{ t('share.form_content') }}</label>
+                     <button @click="copyText(selectedPrompt.prompt)" class="text-xs font-bold text-primary-600 hover:underline flex items-center gap-1">
+                        <span class="uppercase">{{ t('share.copy_prompt') }}</span>
+                     </button>
+                  </div>
+                  <div class="flex-1 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-200 dark:border-neutral-800 p-6 font-mono text-sm leading-relaxed whitespace-pre-wrap select-all overflow-y-auto mb-6">
+                    {{ selectedPrompt.prompt }}
+                  </div>
+
+                  <div v-if="selectedPrompt.description" class="mb-6">
+                    <label class="block text-sm font-bold uppercase tracking-wider mb-2">{{ t('share.form_desc') }}</label>
+                    <p class="text-base text-neutral-600 dark:text-neutral-300 leading-relaxed bg-white dark:bg-neutral-900 p-4 border border-neutral-100 dark:border-neutral-800">{{ selectedPrompt.description }}</p>
+                  </div>
+               </div>
+
+               <div class="flex justify-end gap-4 pt-4 mt-auto">
+                  <button
+                    @click="showDetailModal = false"
+                    class="btn btn-secondary px-6 py-3"
+                  >
+                    {{ t('share.close') }}
+                  </button>
+                  <button
+                    @click="copyText(selectedPrompt.prompt)"
+                    class="btn btn-primary px-6 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+                  >
+                    {{ t('share.copy_prompt') }}
+                  </button>
+               </div>
             </div>
           </div>
-
-          <div v-if="selectedPrompt.description">
-            <label class="block text-sm font-bold uppercase tracking-wider mb-2">Description</label>
-            <p class="text-base text-neutral-600 dark:text-neutral-300 leading-relaxed">{{ selectedPrompt.description }}</p>
-          </div>
-
-          <div>
-            <label class="block text-sm font-bold uppercase tracking-wider mb-2">Tags</label>
-            <div class="flex flex-wrap gap-2">
-              <span
-                v-for="t in selectedPrompt.tags"
-                :key="t"
-                class="px-3 py-1 border border-neutral-900 dark:border-neutral-100 text-xs font-bold uppercase"
-              >
-                #{{ t }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div class="mt-8 flex justify-end gap-4 border-t-2 border-neutral-100 dark:border-neutral-800 pt-6">
-          <button
-            @click="showDetailModal = false"
-            class="btn btn-secondary px-6 py-3"
-          >
-            {{ t('share.close') }}
-          </button>
-          <button
-            @click="copyText(selectedPrompt.prompt)"
-            class="btn btn-primary px-6 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
-          >
-            {{ t('share.copy_prompt') }}
-          </button>
         </div>
       </div>
     </div>
@@ -372,81 +407,91 @@ watch(showSubmitModal, (val) => {
     <!-- Submit Modal -->
     <div v-if="showSubmitModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       <div class="absolute inset-0 bg-neutral-900/80 backdrop-blur-sm" @click="showSubmitModal = false"></div>
-      <div class="relative w-full max-w-2xl bg-white dark:bg-neutral-900 border-4 border-neutral-900 dark:border-neutral-100 p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] max-h-[90vh] overflow-y-auto">
+      <div class="relative w-full max-w-5xl bg-white dark:bg-neutral-900 border-4 border-neutral-900 dark:border-neutral-100 p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] max-h-[95vh] overflow-y-auto">
         <h2 class="text-2xl font-black mb-6 uppercase tracking-tight">{{ t('share.submit_title') }}</h2>
 
-        <form @submit.prevent="handleSubmit" class="space-y-6">
+        <form @submit.prevent="handleSubmit" class="flex flex-col gap-6">
+          <!-- Title (Full Width) -->
           <div>
             <label class="block text-sm font-bold mb-2">{{ t('share.form_title') }}</label>
-            <input v-model="form.title" required type="text" class="input-field w-full h-12 px-4" :placeholder="t('share.form_title_ph')" />
+            <input v-model="form.title" required type="text" class="input-field w-full h-12 px-4 font-bold text-lg" :placeholder="t('share.form_title_ph')" />
           </div>
 
-          <div>
-            <label class="block text-sm font-bold mb-2">{{ t('share.form_content') }}</label>
-            <textarea v-model="form.prompt" required rows="5" class="input-field w-full p-4 font-mono text-sm leading-relaxed" :placeholder="t('share.form_content_ph')"></textarea>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label class="block text-sm font-bold mb-2">{{ t('share.form_model') }}</label>
-              <input
-                v-model="form.model"
-                list="model-options"
-                class="input-field w-full h-12 px-4"
-                :placeholder="t('share.form_model_ph')"
-              />
-              <datalist id="model-options">
-                <option value="NAI 4.5"></option>
-                <option value="NAI 3.0"></option>
-                <option value="Stable Diffusion"></option>
-                <option value="Midjourney"></option>
-                <option value="Flux"></option>
-              </datalist>
-            </div>
-
-            <!-- Image Upload (External URL) -->
-            <div>
-              <label class="block text-sm font-bold mb-2">{{ t('share.form_image') }}</label>
-              <div class="flex gap-2">
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+            <!-- Left Column: Meta Info (40%) -->
+            <div class="md:col-span-5 space-y-5">
+               <!-- Model -->
+               <div>
+                 <label class="block text-sm font-bold mb-2">{{ t('share.form_model') }}</label>
                  <input
-                   v-model="form.image"
-                   type="url"
-                   class="input-field flex-1 h-12 px-4"
-                   :placeholder="t('share.form_image_ph')"
+                   v-model="form.model"
+                   list="model-options"
+                   class="input-field w-full h-10 px-3"
+                   :placeholder="t('share.form_model_ph')"
                  />
-                 <a
-                   href="https://catbox.moe/"
-                   target="_blank"
-                   class="btn btn-secondary px-4 flex items-center justify-center whitespace-nowrap"
-                   :title="t('share.image_upload_btn')"
-                 >
-                   <Upload class="w-4 h-4 mr-1" />
-                   {{ t('share.image_upload_btn') }}
-                 </a>
-              </div>
-              <p class="text-xs text-muted mt-1">{{ t('share.image_hint') }}</p>
+                 <datalist id="model-options">
+                   <option value="NAI 4.5"></option>
+                   <option value="NAI 3.0"></option>
+                   <option value="Stable Diffusion"></option>
+                   <option value="Midjourney"></option>
+                   <option value="Flux"></option>
+                 </datalist>
+               </div>
+
+               <!-- Tags -->
+               <div>
+                 <label class="block text-sm font-bold mb-2">{{ t('share.form_tags') }} <span class="font-normal text-muted">{{ t('share.form_tags_hint') }}</span></label>
+                 <input v-model="tagsInput" type="text" class="input-field w-full h-10 px-3" :placeholder="t('share.form_tags_ph')" />
+               </div>
+
+               <!-- Image Upload -->
+               <div>
+                 <label class="block text-sm font-bold mb-2">{{ t('share.form_image') }}</label>
+                 <div class="flex gap-2">
+                    <input
+                      v-model="form.image"
+                      type="url"
+                      class="input-field flex-1 h-10 px-3 text-sm"
+                      :placeholder="t('share.form_image_ph')"
+                    />
+                    <a
+                      href="https://catbox.moe/"
+                      target="_blank"
+                      class="btn btn-secondary px-3 flex items-center justify-center whitespace-nowrap text-sm"
+                      :title="t('share.image_upload_btn')"
+                    >
+                      <Upload class="w-4 h-4 mr-1" />
+                      {{ t('share.image_upload_btn') }}
+                    </a>
+                 </div>
+                 <p class="text-xs text-muted mt-1">{{ t('share.image_hint') }}</p>
+               </div>
+
+               <!-- Image Preview (Compact) -->
+               <div v-if="form.image" class="relative w-full h-32 bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
+                  <img :src="form.image" class="w-full h-full object-contain" alt="Preview" @error="handleImageError" />
+               </div>
+
+               <!-- Description -->
+               <div>
+                 <label class="block text-sm font-bold mb-2">{{ t('share.form_desc') }}</label>
+                 <textarea v-model="form.description" rows="3" class="input-field w-full p-3 text-sm" :placeholder="t('share.form_desc_ph')"></textarea>
+               </div>
+            </div>
+
+            <!-- Right Column: Prompt (60%) -->
+            <div class="md:col-span-7 flex flex-col h-full">
+               <label class="block text-sm font-bold mb-2">{{ t('share.form_content') }}</label>
+               <textarea
+                  v-model="form.prompt"
+                  required
+                  class="input-field w-full p-4 font-mono text-sm leading-relaxed flex-1 min-h-[400px] md:min-h-0 resize-none bg-neutral-50 dark:bg-neutral-950"
+                  :placeholder="t('share.form_content_ph')">
+               </textarea>
             </div>
           </div>
 
-          <!-- Image Preview -->
-          <div v-if="form.image" class="mt-2">
-             <label class="block text-sm font-bold mb-2">{{ t('share.preview') }}</label>
-             <div class="relative w-full h-48 bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
-                <img :src="form.image" class="w-full h-full object-contain" alt="Preview" @error="handleImageError" />
-             </div>
-          </div>
-
-          <div>
-            <label class="block text-sm font-bold mb-2">{{ t('share.form_tags') }} <span class="font-normal text-muted">{{ t('share.form_tags_hint') }}</span></label>
-            <input v-model="tagsInput" type="text" class="input-field w-full h-12 px-4" :placeholder="t('share.form_tags_ph')" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-bold mb-2">{{ t('share.form_desc') }}</label>
-            <textarea v-model="form.description" rows="3" class="input-field w-full p-4" :placeholder="t('share.form_desc_ph')"></textarea>
-          </div>
-
-          <div class="mt-8 flex justify-end gap-4 border-t-2 border-neutral-100 dark:border-neutral-800 pt-6">
+          <div class="mt-4 flex justify-end gap-4 border-t-2 border-neutral-100 dark:border-neutral-800 pt-6">
             <button
               type="button"
               @click="showSubmitModal = false"

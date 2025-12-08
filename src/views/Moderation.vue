@@ -207,10 +207,10 @@ const handleDelete = async (id: string) => {
           <!-- Tabs -->
            <div class="flex gap-4 border-b-2 border-neutral-200 dark:border-neutral-800 mb-8 overflow-x-auto pb-1">
             <button @click="activeTab = 'my-submissions'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'my-submissions' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
-               My Submissions ({{ store.userPrompts.length }})
+               {{ t('admin.my_submissions') }} ({{ store.userPrompts.length }})
             </button>
             <button @click="activeTab = 'favorites'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'favorites' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
-               Favorites ({{ store.favorites.length }})
+               {{ t('admin.favorites') }} ({{ store.favorites.length }})
             </button>
 
             <!-- Admin Tabs -->
@@ -234,7 +234,7 @@ const handleDelete = async (id: string) => {
           <!-- Content: My Submissions -->
           <div v-if="activeTab === 'my-submissions'" class="space-y-6">
              <div v-if="store.userPrompts.length === 0" class="text-center py-12 text-neutral-400 bg-neutral-50 dark:bg-zinc-800/50 rounded-lg border-dashed border-2">
-               You haven't submitted any prompts yet.
+               {{ t('admin.no_submissions') }}
              </div>
              <div v-for="item in store.userPrompts" :key="item.id" class="card p-6 flex gap-6">
                 <div v-if="item.image" class="w-32 h-32 flex-shrink-0 bg-neutral-100">
@@ -242,7 +242,7 @@ const handleDelete = async (id: string) => {
                 </div>
                 <div class="flex-1">
                    <div class="flex justify-between items-start mb-2">
-                     <h3 class="text-xl font-bold">{{ item.title || 'Untitled' }}</h3>
+                     <h3 class="text-xl font-bold">{{ item.title || t('share.untitled') }}</h3>
                      <span
                         class="text-xs font-mono px-2 py-1 uppercase font-bold"
                         :class="{
@@ -257,7 +257,7 @@ const handleDelete = async (id: string) => {
                    </div>
                    <div class="bg-neutral-100 dark:bg-zinc-800 p-3 font-mono text-xs mb-4 max-h-32 overflow-y-auto">{{ item.prompt }}</div>
                    <div class="flex gap-2">
-                      <a :href="`https://github.com/${store.repoOwner || 'Tera-Dark'}/${store.repoName || 'artist-generator'}/issues/${item._issueNumber}`" target="_blank" class="btn btn-secondary px-3 py-1 text-xs">View on GitHub</a>
+                      <a :href="`https://github.com/${store.repoOwner || 'Tera-Dark'}/${store.repoName || 'artist-generator'}/issues/${item._issueNumber}`" target="_blank" class="btn btn-secondary px-3 py-1 text-xs">{{ t('admin.view_github') }}</a>
                    </div>
                 </div>
              </div>
@@ -266,7 +266,7 @@ const handleDelete = async (id: string) => {
           <!-- Content: Favorites -->
           <div v-if="activeTab === 'favorites'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              <div v-if="store.favorites.length === 0" class="col-span-full text-center py-12 text-neutral-400 bg-neutral-50 dark:bg-zinc-800/50 rounded-lg border-dashed border-2">
-               No favorites yet. Go explore and star some prompts!
+               {{ t('admin.no_favorites') }}
              </div>
              <div v-for="item in store.favorites" :key="item.id" class="card p-4 flex flex-col h-full hover:border-black transition-all group relative">
                 <button @click="store.toggleFavorite(item)" class="absolute top-2 right-2 p-2 bg-white/90 rounded-full hover:bg-red-50 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -387,21 +387,21 @@ const handleDelete = async (id: string) => {
     <!-- Edit Modal -->
     <div v-if="showEditModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
        <div class="bg-white dark:bg-zinc-900 w-full max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-black shadow-[8px_8px_0_0_#fff] p-8">
-          <h2 class="text-2xl font-black mb-6">Edit Content</h2>
+          <h2 class="text-2xl font-black mb-6">{{ t('admin.edit_content') }}</h2>
 
           <div class="space-y-4">
              <div>
-               <label class="label">Title</label>
+               <label class="label">{{ t('share.form_title') }}</label>
                <input v-model="editForm.title" type="text" class="input-field w-full">
              </div>
 
              <div class="grid grid-cols-2 gap-4">
                 <div>
-                  <label class="label">Author</label>
+                  <label class="label">{{ t('admin.author') }}</label>
                   <input v-model="editForm.username" type="text" class="input-field w-full">
                 </div>
                 <div>
-                   <label class="label">Image</label>
+                   <label class="label">{{ t('share.form_image') }}</label>
                    <input type="file" @change="handleFileSelect" class="block w-full text-sm mb-1">
                    <input v-model="editForm.image" @input="editFile = null" type="text" placeholder="https://..." class="input-field w-full text-xs p-2">
                    <div v-if="editForm.image" class="mt-2 h-20 w-20 bg-gray-100"><img :src="editForm.image" class="h-full w-full object-cover"></div>
@@ -409,7 +409,7 @@ const handleDelete = async (id: string) => {
              </div>
 
              <div>
-                <label class="label">Prompt</label>
+                <label class="label">{{ t('share.form_content') }}</label>
                 <textarea v-model="editForm.prompt" rows="6" class="input-field w-full font-mono text-sm"></textarea>
              </div>
 
@@ -436,7 +436,7 @@ const handleDelete = async (id: string) => {
                     {{ t('common.save') }}
                  </button>
                  <button @click="saveEdit('publish')" :disabled="isUploading" class="btn btn-primary px-8">
-                    {{ isUploading ? 'Uploading...' : t('admin.publish') }}
+                    {{ isUploading ? t('common.uploading') : t('admin.publish') }}
                  </button>
              </template>
 
@@ -448,12 +448,12 @@ const handleDelete = async (id: string) => {
                     {{ t('admin.submit_review') }}
                  </button>
                  <button @click="saveEdit('publish')" :disabled="isUploading" class="btn btn-primary px-8">
-                    {{ isUploading ? 'Uploading...' : t('admin.publish') }}
+                    {{ isUploading ? t('common.uploading') : t('admin.publish') }}
                  </button>
              </template>
 
              <button v-else @click="saveEdit('save')" :disabled="isUploading" class="btn btn-primary px-8">
-                {{ isUploading ? 'Uploading...' : t('common.save') }}
+                {{ isUploading ? t('common.uploading') : t('common.save') }}
              </button>
           </div>
        </div>
