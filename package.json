@@ -15,11 +15,14 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@octokit/rest": "^22.0.1",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
+    "lucide-vue-next": "^0.556.0",
     "pinia": "^3.0.1",
     "tailwindcss": "^3.4.17",
     "vue": "^3.5.13",
+    "vue-i18n": "^11.2.2",
     "vue-router": "^4.5.0"
   },
   "devDependencies": {

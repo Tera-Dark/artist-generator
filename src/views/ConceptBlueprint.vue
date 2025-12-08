@@ -4,91 +4,134 @@
     <AppHeader sectionLabel="工作区" />
 
     <!-- 主体：两步流程 -->
-    <main class="section py-16 fade-in-up">
-      <section class="max-w-3xl">
-        <h1 class="heading-xl">画师串生成器</h1>
-      </section>
+    <main class="section section-spacing fade-in-up">
+      <div class="container-responsive">
+        <section class="max-w-4xl mx-auto text-center mb-16">
+          <h1 class="text-5xl md:text-6xl font-black tracking-tighter uppercase mb-6">画师串生成器</h1>
+          <p class="text-xl text-neutral-500 max-w-2xl mx-auto">选择模式，设定数量，一键生成。支持多种权重格式与组合方式。</p>
+        </section>
 
-      <!-- 快速输出（置顶可见） -->
-      <section class="mt-8 fade-in">
-        <h2 class="section-title">输出</h2>
-        <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="md:col-span-2 card p-4 md:sticky md:top-24">
-            <div class="text-sm text-muted mb-2">最终输出</div>
-            <div class="font-mono text-sm bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-lg p-4" aria-live="polite">{{ finalResult }}</div>
+        <!-- 快速输出（置顶可见） -->
+        <section class="mb-20 fade-in">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold uppercase tracking-wide">输出结果</h2>
+            <div class="text-sm text-neutral-500">预览结果将显示在这里</div>
           </div>
-          <div class="md:col-span-1 card p-4 md:sticky md:top-24">
-            <div class="grid grid-cols-1 gap-2">
-              <button
-                id="generate-btn-top"
-                class="btn btn-primary"
-                @click="generate"
-                :disabled="store.isLoading"
-                :aria-busy="store.isLoading"
-              >
-                <span>生成</span>
-                <span v-if="store.isLoading" class="ml-2 text-xs animate-pulse">加载中…</span>
-              </button>
-              <button id="copy-btn-top" class="btn btn-secondary" @click="copyOutput">复制</button>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="md:col-span-2 card p-8 md:sticky md:top-28">
+              <div class="text-base text-muted mb-4 uppercase tracking-wide font-bold">最终输出</div>
+              <div class="font-mono text-lg bg-white dark:bg-neutral-900 border-2 border-neutral-900 dark:border-neutral-100 p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] min-h-[120px]" aria-live="polite">{{ finalResult || '等待生成...' }}</div>
+            </div>
+            <div class="md:col-span-1 card p-8 md:sticky md:top-28 h-fit">
+              <div class="grid grid-cols-1 gap-6">
+                <button
+                  id="generate-btn-top"
+                  class="btn btn-primary w-full text-xl py-6"
+                  @click="generate"
+                  :disabled="store.isLoading"
+                  :aria-busy="store.isLoading"
+                >
+                  <span>生成</span>
+                  <span v-if="store.isLoading" class="ml-2 text-base animate-pulse">加载中…</span>
+                </button>
+                <button id="copy-btn-top" class="btn btn-secondary w-full text-lg py-4" @click="copyOutput">复制结果</button>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- 步骤 1：选择模式、数量与格式（随机从库） -->
-      <section class="mt-10">
-        <h2 class="text-sm font-semibold tracking-wide text-neutral-500 dark:text-neutral-400">步骤 1：模式、数量与格式</h2>
-        <div class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <button :class="['card p-4 transition-all', selectedMode==='pure' ? 'border-neutral-900 ring-2 ring-neutral-900/15 bg-neutral-50 shadow-md dark:bg-neutral-800' : 'hover:-translate-y-[1px]']" @click="selectedMode='pure'">
-            <div class="flex items-center gap-2">
-              <span v-if="selectedMode==='pure'" class="inline-block w-1.5 h-1.5 rounded-full bg-neutral-900 dark:bg-neutral-100"></span>
-              <div class="font-medium text-neutral-900 dark:text-neutral-100">纯净模式</div>
-            </div>
-            <div class="text-sm text-muted mt-1">只输出画师名</div>
-          </button>
-          <button :class="['card p-4 transition-all', selectedMode==='standard' ? 'border-neutral-900 ring-2 ring-neutral-900/15 bg-neutral-50 shadow-md dark:bg-neutral-800' : 'hover:-translate-y-[1px]']" @click="selectedMode='standard'">
-            <div class="flex items-center gap-2">
-              <span v-if="selectedMode==='standard'" class="inline-block w-1.5 h-1.5 rounded-full bg-neutral-900 dark:bg-neutral-100"></span>
-              <div class="font-medium text-neutral-900 dark:text-neutral-100">标准模式</div>
-            </div>
-            <div class="text-sm text-muted mt-1">权重均衡</div>
-          </button>
-          <button :class="['card p-4 transition-all', selectedMode==='creative' ? 'border-neutral-900 ring-2 ring-neutral-900/15 bg-neutral-50 shadow-md dark:bg-neutral-800' : 'hover:-translate-y-[1px]']" @click="selectedMode='creative'">
-            <div class="flex items-center gap-2">
-              <span v-if="selectedMode==='creative'" class="inline-block w-1.5 h-1.5 rounded-full bg-neutral-900 dark:bg-neutral-100"></span>
-              <div class="font-medium text-neutral-900 dark:text-neutral-100">括号模式</div>
-            </div>
-            <div class="text-sm text-muted mt-1">括号权重</div>
-          </button>
-          <button :class="['card p-4 transition-all', selectedMode==='nai' ? 'border-neutral-900 ring-2 ring-neutral-900/15 bg-neutral-50 shadow-md dark:bg-neutral-800' : 'hover:-translate-y-[1px]']" @click="selectedMode='nai'">
-            <div class="flex items-center gap-2">
-              <span v-if="selectedMode==='nai'" class="inline-block w-1.5 h-1.5 rounded-full bg-neutral-900 dark:bg-neutral-100"></span>
-              <div class="font-medium text-neutral-900 dark:text-neutral-100">NAI 模式</div>
-            </div>
-            <div class="text-sm text-muted mt-1">NAI 风格格式</div>
-          </button>
-        </div>
+        <!-- 步骤 1：选择模式、数量与格式（随机从库） -->
+        <section class="mb-20">
+          <h2 class="text-xl font-black tracking-wide text-neutral-900 dark:text-neutral-100 mb-8 border-b-4 border-primary-500 inline-block pb-2">步骤 1：模式、数量与格式</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <button :class="['card p-8 transition-all text-left group', selectedMode==='pure' ? 'ring-4 ring-primary-500 bg-neutral-50 shadow-lg dark:bg-neutral-800' : 'hover:-translate-y-1']" @click="selectedMode='pure'">
+              <div class="flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                  <span v-if="selectedMode==='pure'" class="w-4 h-4 bg-neutral-900 dark:bg-neutral-100"></span>
+                  <span v-else class="w-4 h-4 border-2 border-neutral-300"></span>
+                </div>
+                <div>
+                  <div class="text-xl font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wide">纯净模式</div>
+                  <div class="text-base text-muted mt-2">只输出画师名，无任何权重符号。</div>
+                </div>
+              </div>
+            </button>
+            <button :class="['card p-8 transition-all text-left group', selectedMode==='standard' ? 'ring-4 ring-primary-500 bg-neutral-50 shadow-lg dark:bg-neutral-800' : 'hover:-translate-y-1']" @click="selectedMode='standard'">
+              <div class="flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                   <span v-if="selectedMode==='standard'" class="w-4 h-4 bg-neutral-900 dark:bg-neutral-100"></span>
+                   <span v-else class="w-4 h-4 border-2 border-neutral-300"></span>
+                </div>
+                <div>
+                  <div class="text-xl font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wide">标准模式</div>
+                  <div class="text-base text-muted mt-2">使用 (name:weight) 格式，权重均衡。</div>
+                </div>
+              </div>
+            </button>
+            <button :class="['card p-8 transition-all text-left group', selectedMode==='creative' ? 'ring-4 ring-primary-500 bg-neutral-50 shadow-lg dark:bg-neutral-800' : 'hover:-translate-y-1']" @click="selectedMode='creative'">
+              <div class="flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                   <span v-if="selectedMode==='creative'" class="w-4 h-4 bg-neutral-900 dark:bg-neutral-100"></span>
+                   <span v-else class="w-4 h-4 border-2 border-neutral-300"></span>
+                </div>
+                <div>
+                  <div class="text-xl font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wide">括号模式</div>
+                  <div class="text-base text-muted mt-2" v-pre>使用 {{{name}}} 叠加权重，增强表现。</div>
+                </div>
+              </div>
+            </button>
 
-        <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="card p-4">
-            <label class="block text-sm text-neutral-600 dark:text-neutral-300">艺术家数量</label>
-            <div class="mt-3 flex items-center gap-4">
-              <button @click="decrementCount" class="btn btn-secondary w-10 h-10 !p-0 flex items-center justify-center text-xl" aria-label="减少">−</button>
-              <div class="text-4xl font-bold w-16 text-center" aria-live="polite">{{ artistCount }}</div>
-              <button @click="incrementCount" class="btn btn-secondary w-10 h-10 !p-0 flex items-center justify-center text-xl" aria-label="增加">+</button>
+            <button :class="['card p-8 transition-all text-left group', selectedMode==='nai' ? 'ring-4 ring-primary-500 bg-neutral-50 shadow-lg dark:bg-neutral-800' : 'hover:-translate-y-1']" @click="selectedMode='nai'">
+              <div class="flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                   <span v-if="selectedMode==='nai'" class="w-4 h-4 bg-neutral-900 dark:bg-neutral-100"></span>
+                   <span v-else class="w-4 h-4 border-2 border-neutral-300"></span>
+                </div>
+                <div>
+                  <div class="text-xl font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wide">NAI 模式</div>
+                  <div class="text-base text-muted mt-2">NovelAI 专用格式，大括号权重。</div>
+                </div>
+              </div>
+            </button>
+            <button :class="['card p-8 transition-all text-left group', selectedMode==='custom' ? 'ring-4 ring-primary-500 bg-neutral-50 shadow-lg dark:bg-neutral-800' : 'hover:-translate-y-1']" @click="selectedMode='custom'">
+              <div class="flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                   <span v-if="selectedMode==='custom'" class="w-4 h-4 bg-neutral-900 dark:bg-neutral-100"></span>
+                   <span v-else class="w-4 h-4 border-2 border-neutral-300"></span>
+                </div>
+                <div>
+                  <div class="text-xl font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wide">自定义</div>
+                  <div class="text-base text-muted mt-2">使用 {name} 占位符自定义格式。</div>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          <div class="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div class="card p-8">
+              <label class="block text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-4">艺术家数量</label>
+              <div class="flex items-center gap-6 justify-center py-4">
+                <button @click="decrementCount" class="btn btn-secondary w-16 h-16 !p-0 flex items-center justify-center text-3xl" aria-label="减少">−</button>
+                <div class="text-6xl font-black w-24 text-center tabular-nums" aria-live="polite">{{ artistCount }}</div>
+                <button @click="incrementCount" class="btn btn-secondary w-16 h-16 !p-0 flex items-center justify-center text-3xl" aria-label="增加">+</button>
+              </div>
+              <div class="mt-4 text-sm text-muted text-center">生成数量：1 - 20</div>
             </div>
-            <div class="mt-2 text-xs text-muted">最小 1 · 最大 20</div>
-          </div>
-          <div class="card p-4">
-            <label class="block text-sm text-neutral-600 dark:text-neutral-300">输出格式</label>
-            <select v-model="outputFormat" class="mt-2 input-field">
-              <option value="standard">Standard</option>
-              <option value="nai">NovelAI</option>
-            </select>
-          </div>
-          <div class="card p-4">
-            <label class="block text-sm text-neutral-600 dark:text-neutral-300">随机来源</label>
-            <div class="mt-2 text-xs text-muted">从库中随机补足（排除已预选）</div>
+            <div class="card p-8">
+              <label class="block text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-4">输出格式</label>
+              <select v-model="outputFormat" class="input-field h-16 text-lg">
+                <option value="standard">Standard WebUI</option>
+                <option value="nai">NovelAI / ComfyUI</option>
+              </select>
+               <div class="mt-4 text-sm text-muted">适配不同的生图前端</div>
+            </div>
+            <div class="card p-8">
+               <label class="block text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-4">随机来源策略</label>
+               <div class="p-4 bg-neutral-100 dark:bg-neutral-800 border-l-4 border-neutral-500">
+                 <div class="text-base">从全库随机补足</div>
+                 <div class="text-sm text-muted mt-1">优先排除已选，保证不重复</div>
+               </div>
+            </div>
           </div>
           <!-- 新增：作品数筛选 -->
           <div class="card p-4">
@@ -103,7 +146,6 @@
             </div>
             <div class="mt-2 text-xs text-muted">用于联想与随机补足的过滤</div>
           </div>
-        </div>
 
         <!-- 创意模式：括号样式与嵌套层数配置 -->
         <div v-if="selectedMode==='creative'" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -151,6 +193,21 @@
             <label class="block text-sm text-neutral-600 dark:text-neutral-300 mt-4">权重上限（max，0-2）</label>
             <input id="nai-weight-max" v-model.number="naiWeightMax" type="range" min="0" max="2" step="0.1" class="mt-2 w-full" />
             <div class="mt-2 text-xs text-muted">当前：{{ naiWeightMin.toFixed(1) }} - {{ naiWeightMax.toFixed(1) }}；范围内随机</div>
+          </div>
+        </div>
+
+        <!-- 自定义模式：格式输入 -->
+        <div v-if="selectedMode==='custom'" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="card p-4 col-span-2">
+             <label class="block text-sm text-neutral-600 dark:text-neutral-300">模版字符串</label>
+             <div class="flex gap-4 mt-2">
+                <input v-model="customFormatString" type="text" class="input-field flex-1 font-mono" placeholder="例: (draw by {name}:1.2)" />
+                <div class="flex gap-2">
+                   <button @click="customFormatString='by {name}'" class="btn btn-secondary text-xs px-2 whitespace-nowrap">by {name}</button>
+                   <button @click="customFormatString='artist:{name}'" class="btn btn-secondary text-xs px-2 whitespace-nowrap">artist:{name}</button>
+                </div>
+             </div>
+             <div class="mt-2 text-xs text-muted">使用 <span class="font-mono bg-neutral-100 dark:bg-neutral-800 px-1 rounded">{name}</span> 作为画师名的占位符。</div>
           </div>
         </div>
       </section>
@@ -210,8 +267,8 @@
                 <div class="flex items-center justify-between">
                   <div class="font-medium text-neutral-900 dark:text-neutral-100 truncate" v-html="renderHighlightedName(s.name)"></div>
                   <div class="text-xs text-neutral-500 dark:text-neutral-400">
-                    <span v-if="isPreselected(s.name)" class="mr-2">已添加</span>
-                    别名 {{ s.other_names?.length || 0 }} · 作品 {{ s.post_count || 0 }}
+                    <span v-if="isPreselected(s.name)" class="mr-2 font-bold text-primary-600 dark:text-primary-400">已添加</span>
+                    别名 {{ s.other_names?.length || 0 }} · <span class="font-mono font-bold text-neutral-700 dark:text-neutral-300">作品 {{ s.post_count || 0 }}</span>
                   </div>
                 </div>
                 <div v-if="matchedAliases(s).length" class="mt-1 text-xs text-neutral-600 dark:text-neutral-300">
@@ -231,12 +288,13 @@
               class="btn btn-secondary text-xs px-2 py-1"
               @click="addPreselected(r.name)"
             >
-              {{ r.name }}
+              {{ r.name }} <span class="ml-1 opacity-60 text-[10px] font-mono">{{ r.post_count }}</span>
             </button>
           </div>
         </div>
       </section>
-      
+
+      </div>
     </main>
   </div>
 </template>
@@ -244,12 +302,13 @@
 <script setup lang="ts">
 import AppHeader from '@/components/common/AppHeader.vue'
 import { ref, computed, onMounted, watch, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useGeneratorStore } from '@/stores/generator'
 
 type Artist = { name: string; other_names?: string[]; post_count?: number }
 type BracketStyle = 'paren' | 'curly' | 'square'
 
-const selectedMode = ref<'pure' | 'standard' | 'creative' | 'nai'>('standard')
+const selectedMode = ref<'pure' | 'standard' | 'creative' | 'nai' | 'custom'>('standard')
 const outputFormat = ref<'standard' | 'nai'>('standard')
 const artistCount = ref(3)
 // 作品数筛选
@@ -266,6 +325,7 @@ const standardWeightMin = ref<number>(0.5)
 const standardWeightMax = ref<number>(1.5)
 const naiWeightMin = ref<number>(0.5)
 const naiWeightMax = ref<number>(1.5)
+const customFormatString = ref<string>('artist:{name}')
 
 // 作品数筛选判断函数
 function passesPostCountFilter(a: Artist) {
@@ -292,6 +352,7 @@ const artistDropdownRef = ref<HTMLElement | null>(null)
 const debouncedQuery = ref('')
 let debounceTimer: number | undefined
 
+const { t } = useI18n()
 const store = useGeneratorStore()
 const finalResult = ref('')
 
@@ -476,6 +537,12 @@ function formatOutput(names: string[]) {
     const pickRandom = () => Math.floor(Math.random() * 5) + 1 // 1-5
     return names.map(n => wrapWithBrackets(n, creativeBracketStyle.value, lv === 0 ? pickRandom() : Math.max(1, Math.min(5, lv || 1)))).join(', ')
   }
+
+  // 自定义模式
+  if (selectedMode.value === 'custom') {
+    const fmt = customFormatString.value || '{name}'
+    return names.map(n => fmt.replace(/{name}/g, n)).join(', ')
+  }
   // NAI 模式： 权重::画师名 ::；权重为 [min,max] 随机（相等则统一）
   const clamp = (v: number) => Math.max(0, Math.min(2, v || 0))
   let lo = clamp(naiWeightMin.value), hi = clamp(naiWeightMax.value)
@@ -508,6 +575,10 @@ function generate() {
 }
 
 function copyOutput() {
+  if (!store.user) {
+    store.addToast('info', t('auth.identity_check'), t('share.auth_required'))
+    return
+  }
   if (!finalResult.value) return
   navigator.clipboard?.writeText(finalResult.value)
   try { useGeneratorStore().addToast('success', '已复制', '画师串已复制到剪贴板', 1800) } catch {}
@@ -529,6 +600,7 @@ function saveState() {
     standardWeightMax: standardWeightMax.value,
     naiWeightMin: naiWeightMin.value,
     naiWeightMax: naiWeightMax.value,
+    customFormatString: customFormatString.value,
     preselected: preselectedNames.value,
     final: finalResult.value,
   }
@@ -551,6 +623,7 @@ function restoreState() {
     if (typeof s.standardWeightMax === 'number') standardWeightMax.value = s.standardWeightMax
     if (typeof s.naiWeightMin === 'number') naiWeightMin.value = s.naiWeightMin
     if (typeof s.naiWeightMax === 'number') naiWeightMax.value = s.naiWeightMax
+    if (typeof s.customFormatString === 'string') customFormatString.value = s.customFormatString
     if (Array.isArray(s.preselected)) preselectedNames.value = s.preselected
     if (typeof s.final === 'string') finalResult.value = s.final
   } catch {}
@@ -570,6 +643,7 @@ watch([
   standardWeightMax,
   naiWeightMin,
   naiWeightMax,
+  customFormatString,
   preselectedNames,
   finalResult
 ], saveState, { deep: true })

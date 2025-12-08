@@ -59,4 +59,4 @@ npm run preview
 
 ## 📖 部署说明
 
-查看 [DEPLOYMENT.md](./DEPLOYMENT.md) 了解 GitHub Pages 自动部署配置。
+查看 [部署指南 (DEPLOYMENT.md)](./DEPLOYMENT.md) 了解如何快速部署到 Vercel (推荐) 或其他平台。
