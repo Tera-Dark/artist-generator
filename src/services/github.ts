@@ -221,6 +221,38 @@ ${data.description}
 
         return `https://github.com/${this.owner}/${this.repo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&labels=submission`
     }
+    // Public: Create Submission Issue (In-App)
+    async submitIssue(data: any) {
+        if (!this.octokit) throw new Error('Not logged in')
+
+        // If image is local blob/data, clear it so user knows to provide a real link
+        if (data.image && (data.image.startsWith('blob:') || data.image.startsWith('data:'))) {
+            data.image = ''
+        }
+
+        const title = `[Submission] ${data.title}`
+        const body = `
+\`\`\`json
+${JSON.stringify(data, null, 2)}
+\`\`\`
+
+**Description:**
+${data.description}
+
+*Submitted via Artist Generator*
+    `.trim()
+
+        const { data: issue } = await this.octokit.issues.create({
+            owner: this.owner,
+            repo: this.repo,
+            title,
+            body,
+            labels: ['submission']
+        })
+
+        return issue
+    }
+
     // Admin: Check Permissions
     async checkPermissions() {
         if (!this.octokit) return false

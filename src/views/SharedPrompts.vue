@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useGeneratorStore } from '@/stores/generator'
 import AppHeader from '@/components/common/AppHeader.vue'
-import { Github, Upload, X, Image as ImageIcon, Heart, User } from 'lucide-vue-next'
+import { Github, Upload, X, Image as ImageIcon, Heart, User, Loader2 } from 'lucide-vue-next'
 import type { SharedPrompt } from '@/types'
 
 const store = useGeneratorStore()
@@ -15,6 +15,8 @@ const searchQuery = ref('')
 const activeTag = ref('')
 const showDetailModal = ref(false)
 const showSubmitModal = ref(false)
+const isUploading = ref(false)
+const fileInput = ref<HTMLInputElement | null>(null)
 const selectedPrompt = ref<SharedPrompt | null>(null)
 
 // 提交表单
@@ -28,9 +30,34 @@ const form = ref({
   image: ''
 })
 
-// 图片上传状态
-// const imageFile = ref<File | null>(null) // Removed
-// const imagePreview = ref<string>('') // Removed
+// 图片上传处理
+async function handleFileDrop(e: DragEvent) {
+    const file = e.dataTransfer?.files[0]
+    if (file) await processFile(file)
+}
+
+async function handleFileSelect(e: Event) {
+    const input = e.target as HTMLInputElement
+    const file = input.files?.[0]
+    if (file) await processFile(file)
+}
+
+async function processFile(file: File) {
+    if (!file.type.startsWith('image/')) {
+        store.addToast('error', 'Invalid File', 'Please upload an image')
+        return
+    }
+    isUploading.value = true
+    try {
+        const url = await store.uploadToCatbox(file)
+        form.value.image = url
+        store.addToast('success', 'Uploaded', 'Image uploaded to Catbox')
+    } catch (e) {
+        // Error handled in store
+    } finally {
+        isUploading.value = false
+    }
+}
 
 // 临时标签输入
 const tagsInput = ref('')
@@ -131,24 +158,22 @@ async function handleSubmit() {
     return
   }
 
-  const payload = { ...form.value }
+  const payload = {
+      ...form.value,
+      tags: tagsInput.value.split(/[\s,，、]+/).map(t => t.trim()).filter(Boolean)
+  }
 
-  // Logic: Open GitHub Issue
-  // We keep the image URL in the payload
-  const link = store.getSubmissionLink({
-    ...payload,
-    id: '', // Placeholder
-    tags: tagsInput.value.split(/[\s,，、]+/).map(t => t.trim()).filter(Boolean)
-  } as any)
-
-  window.open(link, '_blank')
-  store.addToast('success', 'Opened GitHub', 'Please submit the issue to contribute.')
-
-  showSubmitModal.value = false
-  // Reset form but keep username if logged in
-  const currentUsername = store.user?.login || ''
-  form.value = { title: '', username: currentUsername, prompt: '', model: 'NAI 3', tags: [], description: '', image: '' }
-  tagsInput.value = ''
+  // Submit via API (In-App)
+  try {
+      await store.submitIssue(payload)
+      showSubmitModal.value = false
+      // Reset form but keep username if logged in
+      const currentUsername = store.user?.login || ''
+      form.value = { title: '', username: currentUsername, prompt: '', model: 'NAI 3', tags: [], description: '', image: '' }
+      tagsInput.value = ''
+  } catch (e) {
+      // Handled in store
+  }
 }
 
 // Watchers
@@ -447,30 +472,47 @@ watch(showSubmitModal, (val) => {
                <!-- Image Upload -->
                <div>
                  <label class="block text-sm font-bold mb-2">{{ t('share.form_image') }}</label>
-                 <div class="flex gap-2">
+
+                 <!-- Drag & Drop Zone -->
+                 <div
+                    class="relative border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-lg p-4 text-center hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+                    @dragover.prevent
+                    @drop.prevent="handleFileDrop"
+                    @click="fileInput?.click()"
+                 >
+                    <input ref="fileInput" type="file" class="hidden" accept="image/*" @change="handleFileSelect">
+
+                    <div v-if="isUploading" class="flex flex-col items-center py-4">
+                        <Loader2 class="w-8 h-8 animate-spin text-neutral-400 mb-2" />
+                        <span class="text-xs text-neutral-500">Uploading to Catbox...</span>
+                    </div>
+
+                    <div v-else-if="form.image" class="relative group">
+                        <img :src="form.image" class="max-h-32 mx-auto rounded shadow-sm object-contain" />
+                        <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded">
+                            <span class="text-white text-xs font-bold">Click to Change</span>
+                        </div>
+                    </div>
+
+                    <div v-else class="py-4 flex flex-col items-center text-neutral-500">
+                        <Upload class="w-8 h-8 mb-2" />
+                        <span class="text-xs font-bold">Drag & Drop or Click to Upload</span>
+                        <span class="text-[10px] mt-1 text-neutral-400">Auto-uploads to Catbox.moe</span>
+                    </div>
+                 </div>
+
+                 <!-- URL Input Fallback -->
+                 <div class="mt-2">
                     <input
                       v-model="form.image"
                       type="url"
-                      class="input-field flex-1 h-10 px-3 text-sm"
+                      class="input-field w-full h-8 px-2 text-xs text-neutral-500"
                       :placeholder="t('share.form_image_ph')"
                     />
-                    <a
-                      href="https://catbox.moe/"
-                      target="_blank"
-                      class="btn btn-secondary px-3 flex items-center justify-center whitespace-nowrap text-sm"
-                      :title="t('share.image_upload_btn')"
-                    >
-                      <Upload class="w-4 h-4 mr-1" />
-                      {{ t('share.image_upload_btn') }}
-                    </a>
                  </div>
-                 <p class="text-xs text-muted mt-1">{{ t('share.image_hint') }}</p>
                </div>
 
-               <!-- Image Preview (Compact) -->
-               <div v-if="form.image" class="relative w-full h-32 bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
-                  <img :src="form.image" class="w-full h-full object-contain" alt="Preview" @error="handleImageError" />
-               </div>
+               <!-- Image Preview (Compact) - REMOVED (Integrated above) -->
 
                <!-- Description -->
                <div>

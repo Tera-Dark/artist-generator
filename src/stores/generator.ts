@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import type { Artist, ToastMessage, SharedPrompt } from '@/types'
 import { githubService } from '@/services/github'
 import { authService } from '@/services/auth'
+import { catboxService } from '@/services/catbox'
 
 export const useGeneratorStore = defineStore('generator', () => {
   // --- States ---
@@ -206,6 +207,33 @@ export const useGeneratorStore = defineStore('generator', () => {
   // --- Actions: Submit (Public) ---
   const getSubmissionLink = (item: SharedPrompt) => {
     return githubService.getSubmissionLink(item)
+  }
+
+  const submitIssue = async (data: any) => {
+    isLoading.value = true
+    try {
+        const issue = await githubService.submitIssue(data)
+        addToast('success', 'Submitted', 'Issue created successfully', 2000)
+        return issue
+    } catch (e) {
+        addToast('error', 'Error', 'Failed to create issue', 3000)
+        throw e
+    } finally {
+        isLoading.value = false
+    }
+  }
+
+  const uploadToCatbox = async (file: File) => {
+    isLoading.value = true
+    try {
+        const url = await catboxService.uploadFile(file)
+        return url
+    } catch (e) {
+        addToast('error', 'Upload Failed', 'Failed to upload to Catbox', 3000)
+        throw e
+    } finally {
+        isLoading.value = false
+    }
   }
 
   // --- Actions: Admin (GitHub API) ---
@@ -520,6 +548,8 @@ export const useGeneratorStore = defineStore('generator', () => {
     loadArtists,
     loadSharedPrompts,
     getSubmissionLink,
+    submitIssue,
+    uploadToCatbox,
     saveLocalDraft,
     verifyModerator,
     loadPendingSubmissions,
