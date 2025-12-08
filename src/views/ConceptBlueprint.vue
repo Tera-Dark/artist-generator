@@ -93,21 +93,9 @@
                 </div>
               </div>
             </button>
-            <button :class="['card p-8 transition-all text-left group', selectedMode==='custom' ? 'ring-4 ring-primary-500 bg-neutral-50 shadow-lg dark:bg-neutral-800' : 'hover:-translate-y-1']" @click="selectedMode='custom'">
-              <div class="flex flex-col gap-4">
-                <div class="flex items-center justify-between">
-                   <span v-if="selectedMode==='custom'" class="w-4 h-4 bg-neutral-900 dark:bg-neutral-100"></span>
-                   <span v-else class="w-4 h-4 border-2 border-neutral-300"></span>
-                </div>
-                <div>
-                  <div class="text-xl font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wide">自定义</div>
-                  <div class="text-base text-muted mt-2">使用 {name} 占位符自定义格式。</div>
-                </div>
-              </div>
-            </button>
           </div>
 
-          <div class="mt-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div class="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8">
             <div class="card p-8">
               <label class="block text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-4">艺术家数量</label>
               <div class="flex items-center gap-6 justify-center py-4">
@@ -118,19 +106,33 @@
               <div class="mt-4 text-sm text-muted text-center">生成数量：1 - 20</div>
             </div>
             <div class="card p-8">
-              <label class="block text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-4">输出格式</label>
-              <select v-model="outputFormat" class="input-field h-16 text-lg">
-                <option value="standard">Standard WebUI</option>
-                <option value="nai">NovelAI / ComfyUI</option>
-              </select>
-               <div class="mt-4 text-sm text-muted">适配不同的生图前端</div>
-            </div>
-            <div class="card p-8">
                <label class="block text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-4">随机来源策略</label>
                <div class="p-4 bg-neutral-100 dark:bg-neutral-800 border-l-4 border-neutral-500">
                  <div class="text-base">从全库随机补足</div>
                  <div class="text-sm text-muted mt-1">优先排除已选，保证不重复</div>
                </div>
+            </div>
+          </div>
+
+          <!-- 可选功能块：自定义格式包装 -->
+          <div class="mt-8 card p-8 border-l-4 border-neutral-500">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <input type="checkbox" id="enable-custom-fmt" v-model="enableCustomFormat" class="w-5 h-5 accent-primary-500 cursor-pointer" />
+                <label for="enable-custom-fmt" class="text-lg font-bold text-neutral-900 dark:text-neutral-100 cursor-pointer select-none">启用自定义格式包装</label>
+              </div>
+              <div class="text-sm text-muted">适配所有模式结果</div>
+            </div>
+
+            <div v-if="enableCustomFormat" class="fade-in">
+               <div class="flex flex-col md:flex-row gap-4">
+                  <input v-model="customFormatString" type="text" class="input-field flex-1 font-mono" placeholder="例: (draw by {name}:1.2)" />
+                  <div class="flex gap-2">
+                     <button @click="customFormatString='by {name}'" class="btn btn-secondary text-xs px-2 whitespace-nowrap">by {name}</button>
+                     <button @click="customFormatString='artist:{name}'" class="btn btn-secondary text-xs px-2 whitespace-nowrap">artist:{name}</button>
+                  </div>
+               </div>
+               <div class="mt-2 text-xs text-muted">使用 <span class="font-mono bg-neutral-100 dark:bg-neutral-800 px-1 rounded">{name}</span> 代表当前模式生成的画师串（可能是纯名、权重或嵌套结果）。</div>
             </div>
           </div>
           <!-- 新增：作品数筛选 -->
@@ -196,20 +198,7 @@
           </div>
         </div>
 
-        <!-- 自定义模式：格式输入 -->
-        <div v-if="selectedMode==='custom'" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="card p-4 col-span-2">
-             <label class="block text-sm text-neutral-600 dark:text-neutral-300">模版字符串</label>
-             <div class="flex gap-4 mt-2">
-                <input v-model="customFormatString" type="text" class="input-field flex-1 font-mono" placeholder="例: (draw by {name}:1.2)" />
-                <div class="flex gap-2">
-                   <button @click="customFormatString='by {name}'" class="btn btn-secondary text-xs px-2 whitespace-nowrap">by {name}</button>
-                   <button @click="customFormatString='artist:{name}'" class="btn btn-secondary text-xs px-2 whitespace-nowrap">artist:{name}</button>
-                </div>
-             </div>
-             <div class="mt-2 text-xs text-muted">使用 <span class="font-mono bg-neutral-100 dark:bg-neutral-800 px-1 rounded">{name}</span> 作为画师名的占位符。</div>
-          </div>
-        </div>
+
       </section>
 
       <!-- 步骤 2：预选艺术家（可选） -->
@@ -308,8 +297,8 @@ import { useGeneratorStore } from '@/stores/generator'
 type Artist = { name: string; other_names?: string[]; post_count?: number }
 type BracketStyle = 'paren' | 'curly' | 'square'
 
-const selectedMode = ref<'pure' | 'standard' | 'creative' | 'nai' | 'custom'>('standard')
-const outputFormat = ref<'standard' | 'nai'>('standard')
+const selectedMode = ref<'pure' | 'standard' | 'creative' | 'nai'>('standard')
+const enableCustomFormat = ref(false)
 const artistCount = ref(3)
 // 作品数筛选
 const postCountFilterMode = ref<'none' | 'gt' | 'lt'>('none')
@@ -519,37 +508,42 @@ function wrapWithBrackets(name: string, style: BracketStyle, layers: number) {
 }
 
 function formatOutput(names: string[]) {
-  // 纯净模式：仅名字
+  let items: string[] = []
+
+  // 1. 生成基础串（根据模式）
   if (selectedMode.value === 'pure') {
-    return names.join(', ')
-  }
-  // 标准模式：(名称:权重) 格式；权重为 [min,max] 随机（相等则统一）
-  if (selectedMode.value === 'standard') {
+    items = names
+  } else if (selectedMode.value === 'standard') {
+    // 标准模式：(名称:权重)
     const clamp = (v: number) => Math.max(0, Math.min(2, v || 0))
     let lo = clamp(standardWeightMin.value), hi = clamp(standardWeightMax.value)
     if (lo > hi) [lo, hi] = [hi, lo]
     const pick = () => Math.round((lo + Math.random() * (hi - lo)) * 10) / 10
-    return names.map(n => `(${n}:${(lo === hi ? lo : pick()).toFixed(1)})`).join(', ')
-  }
-  // 创意模式：括号模式 + 嵌套层数（1-5）
-  if (selectedMode.value === 'creative') {
+    items = names.map(n => `(${n}:${(lo === hi ? lo : pick()).toFixed(1)})`)
+  } else if (selectedMode.value === 'creative') {
+    // 创意模式：括号嵌套
     const lv = creativeNestLevels.value
-    const pickRandom = () => Math.floor(Math.random() * 5) + 1 // 1-5
-    return names.map(n => wrapWithBrackets(n, creativeBracketStyle.value, lv === 0 ? pickRandom() : Math.max(1, Math.min(5, lv || 1)))).join(', ')
+    const pickRandom = () => Math.floor(Math.random() * 5) + 1
+    items = names.map(n => wrapWithBrackets(n, creativeBracketStyle.value, lv === 0 ? pickRandom() : Math.max(1, Math.min(5, lv || 1))))
+  } else if (selectedMode.value === 'nai') {
+    // NAI 模式： 权重::画师名 ::
+    const clamp = (v: number) => Math.max(0, Math.min(2, v || 0))
+    let lo = clamp(naiWeightMin.value), hi = clamp(naiWeightMax.value)
+    if (lo > hi) [lo, hi] = [hi, lo]
+    const pick = () => Math.round((lo + Math.random() * (hi - lo)) * 10) / 10
+    const weights = names.map(() => (lo === hi ? lo : pick()))
+    items = names.map((n, i) => `${Number(weights[i]).toFixed(1)}::${n} ::`)
+  } else {
+    items = names
   }
 
-  // 自定义模式
-  if (selectedMode.value === 'custom') {
+  // 2. 自定义格式包装（适配所有模式结果）
+  if (enableCustomFormat.value) {
     const fmt = customFormatString.value || '{name}'
-    return names.map(n => fmt.replace(/{name}/g, n)).join(', ')
+    items = items.map(item => fmt.replace(/{name}/g, item))
   }
-  // NAI 模式： 权重::画师名 ::；权重为 [min,max] 随机（相等则统一）
-  const clamp = (v: number) => Math.max(0, Math.min(2, v || 0))
-  let lo = clamp(naiWeightMin.value), hi = clamp(naiWeightMax.value)
-  if (lo > hi) [lo, hi] = [hi, lo]
-  const pick = () => Math.round((lo + Math.random() * (hi - lo)) * 10) / 10
-  const weights = names.map(() => (lo === hi ? lo : pick()))
-  return names.map((n, i) => `${Number(weights[i]).toFixed(1)}::${n} ::`).join(', ')
+
+  return items.join(', ')
 }
 
 function generate() {
@@ -590,7 +584,7 @@ const LS_KEY = 'artist_string_generator_v1'
 function saveState() {
   const payload = {
     mode: selectedMode.value,
-    format: outputFormat.value,
+    enableCustomFormat: enableCustomFormat.value,
     count: artistCount.value,
     postFilterMode: postCountFilterMode.value,
     postFilterThreshold: postCountThreshold.value,
@@ -613,7 +607,7 @@ function restoreState() {
     if (!raw) return
     const s = JSON.parse(raw)
     if (s.mode) selectedMode.value = s.mode
-    if (s.format) outputFormat.value = s.format
+    if (typeof s.enableCustomFormat === 'boolean') enableCustomFormat.value = s.enableCustomFormat
     if (typeof s.count === 'number') artistCount.value = s.count
     if (s.postFilterMode) postCountFilterMode.value = s.postFilterMode
     if (typeof s.postFilterThreshold === 'number') postCountThreshold.value = s.postFilterThreshold
@@ -633,7 +627,7 @@ restoreState()
 
 watch([
   selectedMode,
-  outputFormat,
+  enableCustomFormat,
   artistCount,
   postCountFilterMode,
   postCountThreshold,
