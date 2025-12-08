@@ -16,6 +16,15 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  server: {
+    proxy: {
+      '/api/upload': {
+        target: 'https://catbox.moe',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/upload/, '/user/api.php')
+      }
+    }
+  },
   build: {
     rollupOptions: {
       output: {

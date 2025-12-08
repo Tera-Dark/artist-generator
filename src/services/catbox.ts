@@ -6,7 +6,8 @@ export const catboxService = {
     formData.append('fileToUpload', file)
 
     try {
-      const response = await fetch('https://catbox.moe/user/api.php', {
+      // Use relative path to leverage Vercel Edge Function (prod) or Vite Proxy (dev)
+      const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       })
