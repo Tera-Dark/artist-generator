@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useGeneratorStore } from '@/stores/generator'
 import AppHeader from '@/components/common/AppHeader.vue'
-import { Github, Upload, X, Image as ImageIcon, Heart, User, Loader2 } from 'lucide-vue-next'
+import { Github, Upload, X, Image as ImageIcon, Heart, User, Loader2, Archive, Save, Trash2, Clock } from 'lucide-vue-next'
 import type { SharedPrompt } from '@/types'
 
 const store = useGeneratorStore()
@@ -28,6 +29,68 @@ const form = ref({
   tags: [] as string[],
   description: '',
   image: ''
+})
+
+// Draft System
+const showDraftsModal = ref(false)
+const currentDraftId = ref<string | null>(null)
+const isFormDirty = computed(() => !!(
+  form.value.prompt.trim() ||
+  form.value.title.trim() ||
+  form.value.description.trim() ||
+  form.value.image.trim()
+))
+
+function handleSaveDraft(isAuto = false) {
+    if (!isFormDirty.value) return
+
+    const draftData = {
+        ...form.value,
+        id: currentDraftId.value || undefined,
+        tags: tagsInput.value.split(/[\s,，、]+/).map(t => t.trim()).filter(Boolean)
+    }
+
+    const id = store.saveLocalDraft(draftData, isAuto)
+    currentDraftId.value = id
+}
+
+function handleLoadDraft(draft: SharedPrompt) {
+    form.value = {
+        title: draft.title || '',
+        username: draft.username || store.user?.login || '',
+        prompt: draft.prompt || '',
+        model: draft.model || 'NAI 3',
+        tags: draft.tags || [],
+        description: draft.description || '',
+        image: draft.image || ''
+    }
+    tagsInput.value = (draft.tags || []).join(', ')
+    currentDraftId.value = draft.id
+    showDraftsModal.value = false
+    showSubmitModal.value = true
+}
+
+function handleDeleteDraft(id: string) {
+    if(confirm(t('common.confirm_delete') || 'Delete this draft?')) {
+        store.deleteLocalDraft(id)
+        if(currentDraftId.value === id) currentDraftId.value = null
+    }
+}
+
+// Auto-save hooks
+onBeforeRouteLeave((to, from, next) => {
+    if (showSubmitModal.value && isFormDirty.value) {
+        handleSaveDraft(true)
+        store.addToast('info', 'Auto Saved', 'Draft saved to box', 2000)
+    }
+    next()
+})
+
+watch(showSubmitModal, (newVal, oldVal) => {
+    // Closing modal with unsaved changes -> Auto Save
+    if (!newVal && oldVal && isFormDirty.value) {
+         handleSaveDraft(true)
+    }
 })
 
 // 图片上传处理
@@ -116,6 +179,11 @@ function handleNewPrompt() {
     store.addToast('info', t('auth.identity_check'), t('share.auth_required'))
     return
   }
+  // Reset for new entry
+  form.value = { title: '', username: store.user.login, prompt: '', model: 'NAI 3', tags: [], description: '', image: '' }
+  tagsInput.value = ''
+  currentDraftId.value = null
+
   showSubmitModal.value = true
 }
 
@@ -166,6 +234,13 @@ async function handleSubmit() {
   // Submit via API (In-App)
   try {
       await store.submitIssue(payload)
+
+      // Remove draft if exists
+      if (currentDraftId.value) {
+          store.deleteLocalDraft(currentDraftId.value)
+          currentDraftId.value = null
+      }
+
       showSubmitModal.value = false
       // Reset form but keep username if logged in
       const currentUsername = store.user?.login || ''
@@ -204,12 +279,21 @@ watch(showSubmitModal, (val) => {
             <h1 class="heading-xl mb-2">{{ t('share.title') }}</h1>
             <p class="text-xl text-neutral-500">{{ t('share.subtitle') }}</p>
           </div>
-          <button
-            @click="handleNewPrompt"
-            class="btn btn-primary text-base px-6 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
-          >
-            {{ t('share.new_prompt') }}
-          </button>
+          <div class="flex items-center gap-4">
+            <button
+              @click="showDraftsModal = true"
+              class="btn btn-secondary text-base px-6 py-3 flex items-center gap-2"
+            >
+              <Archive class="w-5 h-5" />
+              <span>{{ t('common.draft_box') }}</span>
+            </button>
+            <button
+              @click="handleNewPrompt"
+              class="btn btn-primary text-base px-6 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+            >
+              {{ t('share.new_prompt') }}
+            </button>
+          </div>
         </div>
 
         <!-- Search & Filter -->
@@ -536,6 +620,15 @@ watch(showSubmitModal, (val) => {
           <div class="mt-4 flex justify-end gap-4 border-t-2 border-neutral-100 dark:border-neutral-800 pt-6">
             <button
               type="button"
+              @click="handleSaveDraft(false)"
+              class="btn btn-secondary px-6 py-3 flex items-center gap-2 mr-auto"
+            >
+              <Save class="w-4 h-4" />
+              <span>{{ t('common.save_draft') }}</span>
+            </button>
+
+            <button
+              type="button"
               @click="showSubmitModal = false"
               class="btn btn-secondary px-6 py-3"
             >
@@ -550,6 +643,45 @@ watch(showSubmitModal, (val) => {
           </div>
         </form>
         <div class="text-xs text-center text-muted mt-4">{{ t('share.submit_hint') }}</div>
+      </div>
+    </div>
+
+    <!-- Drafts Modal -->
+    <div v-if="showDraftsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col border-2 border-neutral-900 dark:border-neutral-100">
+          <div class="p-6 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
+               <h2 class="text-2xl font-black uppercase">{{ t('common.draft_box') }}</h2>
+               <button @click="showDraftsModal = false" class="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full"><X class="w-6 h-6"/></button>
+          </div>
+
+          <div class="flex-1 overflow-y-auto p-6 space-y-4">
+               <div v-if="store.localDrafts.length === 0" class="text-center py-12 text-neutral-500">
+                   <Archive class="w-12 h-12 mx-auto mb-3 opacity-50"/>
+                   <p>{{ t('share.no_drafts') }}</p>
+               </div>
+
+               <div v-for="draft in store.localDrafts" :key="draft.id" class="border border-neutral-200 dark:border-neutral-800 rounded-lg p-4 hover:border-neutral-400 dark:hover:border-neutral-500 transition-colors">
+                    <div class="flex justify-between items-start mb-2">
+                         <h3 class="font-bold text-lg truncate flex-1 pr-4">{{ draft.title || t('share.untitled') }}</h3>
+                         <span class="text-xs text-neutral-400 whitespace-nowrap flex items-center">
+                             <Clock class="w-3 h-3 mr-1"/>
+                             {{ new Date(draft._updatedAt || Date.now()).toLocaleDateString() }}
+                         </span>
+                    </div>
+                    <p class="text-sm text-neutral-500 line-clamp-2 mb-4 font-mono bg-neutral-50 dark:bg-neutral-950 p-2 rounded">
+                        {{ draft.prompt || t('share.no_results') }}
+                    </p>
+
+                    <div class="flex justify-end gap-3">
+                         <button @click="handleDeleteDraft(draft.id)" class="text-red-500 hover:text-red-600 text-sm font-bold flex items-center px-3 py-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded">
+                             <Trash2 class="w-4 h-4 mr-1"/> {{ t('common.delete') }}
+                         </button>
+                         <button @click="handleLoadDraft(draft)" class="btn btn-primary text-sm px-4 py-1.5">
+                             {{ t('common.load_draft') }}
+                         </button>
+                    </div>
+               </div>
+          </div>
       </div>
     </div>
 

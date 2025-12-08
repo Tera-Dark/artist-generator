@@ -25,7 +25,12 @@ const messages = {
             delete: '删除',
             edit: '编辑',
             quick: '快速',
-            uploading: '上传中...'
+            uploading: '上传中...',
+            confirm_delete: '确定要删除吗？',
+            draft_saved: '草稿已保存',
+            auto_saved: '已自动保存',
+            load_draft: '加载草稿',
+            draft_box: '草稿箱'
         },
         settings: {
             title: '设置',
@@ -75,7 +80,8 @@ const messages = {
             submit_review: '提交审核',
             submit_hint: '提交的内容将进入审核队列，通过后对社区可见。',
             auth_required: '提交Prompt需要先登录GitHub',
-            prompt_required: '请填写 Prompt 内容'
+            prompt_required: '请填写 Prompt 内容',
+            no_drafts: '暂无草稿'
         },
         auth: {
             login: '登录',
@@ -145,7 +151,12 @@ const messages = {
             delete: 'Delete',
             edit: 'Edit',
             quick: 'Quick',
-            uploading: 'Uploading...'
+            uploading: 'Uploading...',
+            confirm_delete: 'Are you sure you want to delete?',
+            draft_saved: 'Draft Saved',
+            auto_saved: 'Auto Saved',
+            load_draft: 'Load Draft',
+            draft_box: 'Draft Box'
         },
         settings: {
             title: 'Settings',
@@ -195,7 +206,8 @@ const messages = {
             submit_review: 'Submit for Review',
             submit_hint: 'Submitted content will enter the review queue and be visible to the community after approval.',
             auth_required: 'Login to GitHub is required to submit a prompt',
-            prompt_required: 'Prompt content is required'
+            prompt_required: 'Prompt content is required',
+            no_drafts: 'No drafts saved'
         },
         auth: {
             login: 'Login',

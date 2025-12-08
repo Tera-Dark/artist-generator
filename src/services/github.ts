@@ -1,4 +1,5 @@
 import { Octokit } from '@octokit/rest'
+import { dataStorage } from '@/services/dataStorage'
 
 export class GitHubService {
     private octokit: Octokit | null = null
@@ -63,59 +64,129 @@ export class GitHubService {
         return data
     }
 
-    // Admin: Approve (Merge to JSON + Close Issue)
+    // Admin: Approve (Merge to Chunked Storage + Close Issue)
     async approveSubmission(issueNumber: number, promptData: any) {
         if (!this.octokit) throw new Error('Admin not logged in')
 
-        // 1. Get current prompts.json sha and content
-        const path = 'public/data/prompts.json'
-        let sha: string | undefined
-        let content: any[] = []
+        // Constants
+        const { CHUNK_SIZE, INDEX_PATH, BASE_PATH } = dataStorage.config
 
+        // Retry logic for optimistic locking (409 Conflict)
+        const MAX_RETRIES = 3
+        let attempt = 0
+
+        while (attempt < MAX_RETRIES) {
+            try {
+                // 1. Fetch Index
+                let indexData: any = { chunks: [], total: 0 }
+                let indexSha: string | undefined
+
+                try {
+                    const indexRes = await this._fetchJson(INDEX_PATH)
+                    indexData = indexRes.content
+                    indexSha = indexRes.sha
+                } catch (e) {
+                    console.log('Index not found, initializing...')
+                }
+
+                // 2. Determine Target Chunk
+                let targetChunkPath = ''
+                let isNewChunk = false
+                let chunkContent: any[] = []
+                let chunkSha: string | undefined
+
+                if (indexData.chunks.length === 0) {
+                    // First ever chunk
+                    targetChunkPath = `${BASE_PATH}/chunk_0.json`
+                    isNewChunk = true
+                } else {
+                    const lastChunkName = indexData.chunks[indexData.chunks.length - 1]
+                    targetChunkPath = `${BASE_PATH}/${lastChunkName}`
+
+                    try {
+                        const chunkRes = await this._fetchJson(targetChunkPath)
+                        chunkContent = chunkRes.content
+                        chunkSha = chunkRes.sha
+
+                        if (chunkContent.length >= CHUNK_SIZE) {
+                            // Last chunk full, create new
+                            const nextIndex = indexData.chunks.length
+                            targetChunkPath = `${BASE_PATH}/chunk_${nextIndex}.json`
+                            isNewChunk = true
+                            chunkContent = [] // Reset for new file
+                            chunkSha = undefined
+                        }
+                    } catch (e) {
+                        // Should not happen if index exists, but fallback
+                        isNewChunk = true
+                        chunkContent = []
+                    }
+                }
+
+                // 3. Add Data to Chunk
+                // Ensure uniqueness in this chunk
+                if (!chunkContent.some((p: any) => p.id === promptData.id)) {
+                    chunkContent.unshift({ ...promptData, status: 'published', approved_at: Date.now() })
+                }
+
+                // 4. Commit Chunk
+                await this.octokit.repos.createOrUpdateFileContents({
+                    owner: this.owner,
+                    repo: this.repo,
+                    path: targetChunkPath,
+                    message: `feat: approve submission #${issueNumber} to ${targetChunkPath.split('/').pop()}`,
+                    content: btoa(unescape(encodeURIComponent(JSON.stringify(chunkContent, null, 2)))),
+                    sha: chunkSha,
+                    branch: this.branch
+                })
+
+                // 5. Update Index
+                indexData.total = (indexData.total || 0) + 1
+                indexData.lastUpdated = Date.now()
+
+                if (isNewChunk) {
+                    const chunkName = targetChunkPath.split('/').pop()
+                    if (chunkName) {
+                        indexData.chunks.push(chunkName)
+                    }
+                }
+
+                await this.octokit.repos.createOrUpdateFileContents({
+                    owner: this.owner,
+                    repo: this.repo,
+                    path: INDEX_PATH,
+                    message: `chore: update index (total: ${indexData.total})`,
+                    content: btoa(unescape(encodeURIComponent(JSON.stringify(indexData, null, 2)))),
+                    sha: indexSha,
+                    branch: this.branch
+                })
+
+                // Success! Break loop
+                break
+            } catch (e: any) {
+                if (e.status === 409 && attempt < MAX_RETRIES - 1) {
+                    console.warn(`Conflict detected (attempt ${attempt + 1}), retrying...`)
+                    attempt++
+                    await new Promise(r => setTimeout(r, 1000 * Math.random() + 500)) // Jitter
+                    continue
+                }
+                throw e // Rethrow if not 409 or max retries reached
+            }
+        }
+
+        // 6. Close Issue (This can fail safely, data is already saved)
         try {
-            const { data } = await this.octokit.repos.getContent({
+            await this.octokit.issues.update({
                 owner: this.owner,
                 repo: this.repo,
-                path,
-                ref: this.branch
+                issue_number: issueNumber,
+                state: 'closed',
+                state_reason: 'completed',
+                labels: ['approved']
             })
-
-            if ('content' in data && 'sha' in data) {
-                sha = data.sha
-                const decoded = decodeURIComponent(escape(atob(data.content)))
-                content = JSON.parse(decoded)
-            }
         } catch (e) {
-            // File likely doesn't exist yet, create it
-            console.warn('prompts.json not found, creating new.', e)
+            console.error('Failed to close issue after approval', e)
         }
-
-        // 2. Add new data
-        // Ensure uniqueness
-        if (!content.some((p: any) => p.id === promptData.id)) {
-            content.unshift({ ...promptData, status: 'published', approved_at: Date.now() })
-        }
-
-        // 3. Commit update
-        await this.octokit.repos.createOrUpdateFileContents({
-            owner: this.owner,
-            repo: this.repo,
-            path,
-            message: `feat: approve submission #${issueNumber}`,
-            content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
-            sha, // Update needs SHA, create doesn't
-            branch: this.branch
-        })
-
-        // 4. Close Issue
-        await this.octokit.issues.update({
-            owner: this.owner,
-            repo: this.repo,
-            issue_number: issueNumber,
-            state: 'closed',
-            state_reason: 'completed',
-            labels: ['approved']
-        })
     }
 
     // Admin: Reject (Close Issue)
@@ -303,9 +374,9 @@ ${data.description}
     }
 
     // Admin: Delete Prompt
-    async deletePrompt(id: string) {
+    async deletePrompt(id: string, chunkPath?: string) {
         if (!this.octokit) throw new Error('Admin not logged in')
-        const path = 'public/data/prompts.json'
+        const path = chunkPath || 'public/data/prompts.json'
 
         // Fetch current
         const currentData = await this._fetchJson(path)
@@ -326,10 +397,13 @@ ${data.description}
     // Admin: Update Prompt (Edit)
     async updatePrompt(prompt: any) {
         if (!this.octokit) throw new Error('Admin not logged in')
-        const path = 'public/data/prompts.json'
+        const path = prompt._chunkPath || 'public/data/prompts.json'
+
+        // Clean internal props
+        const { _chunkPath, ...cleanPrompt } = prompt
 
         const currentData = await this._fetchJson(path)
-        const content = currentData.content.map((p: any) => p.id === prompt.id ? { ...p, ...prompt, updated_at: Date.now() } : p)
+        const content = currentData.content.map((p: any) => p.id === cleanPrompt.id ? { ...p, ...cleanPrompt, updated_at: Date.now() } : p)
 
         await this.octokit.repos.createOrUpdateFileContents({
             owner: this.owner,

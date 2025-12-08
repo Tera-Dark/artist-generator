@@ -4,6 +4,7 @@ import type { Artist, ToastMessage, SharedPrompt } from '@/types'
 import { githubService } from '@/services/github'
 import { authService } from '@/services/auth'
 import { catboxService } from '@/services/catbox'
+import { dataStorage } from '@/services/dataStorage'
 
 export const useGeneratorStore = defineStore('generator', () => {
   // --- States ---
@@ -23,6 +24,10 @@ export const useGeneratorStore = defineStore('generator', () => {
   // Favorites (Persisted locally)
   const favorites = ref<SharedPrompt[]>([])
   const FAVORITES_KEY = 'ag_favorites_v1'
+
+  // Local Drafts (Persisted locally)
+  const localDrafts = ref<SharedPrompt[]>([])
+  const LOCAL_DRAFTS_KEY = 'ag_local_drafts_v1'
 
   // Config
   const ARTISTS_TTL_MS = 15 * 60 * 1000
@@ -189,16 +194,11 @@ export const useGeneratorStore = defineStore('generator', () => {
 
     isLoading.value = true
     try {
-      const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : import.meta.env.BASE_URL + '/'
-      const res = await fetch(`${base}data/prompts.json?t=${Date.now()}`) // Cache bust
-      if (res.ok) {
-        sharedPrompts.value = await res.json()
-      } else {
-        // Fallback or empty if file doesn't exist yet
-        sharedPrompts.value = []
-      }
+      const base = import.meta.env.BASE_URL
+      sharedPrompts.value = await dataStorage.getAllPrompts(base)
     } catch (e) {
-      console.warn('Failed to load prompts.json', e)
+      console.warn('Failed to load prompts', e)
+      sharedPrompts.value = []
     } finally {
       isLoading.value = false
     }
@@ -485,7 +485,8 @@ export const useGeneratorStore = defineStore('generator', () => {
     if (!confirm('Are you sure you want to delete this prompt globally?')) return
     isLoading.value = true
     try {
-      await githubService.deletePrompt(id)
+      const item = sharedPrompts.value.find(p => p.id === id)
+      await githubService.deletePrompt(id, item?._chunkPath)
       sharedPrompts.value = sharedPrompts.value.filter(p => p.id !== id)
       addToast('success', 'Deleted', 'Prompt removed from repo', 2000)
     } catch (e) {
@@ -510,17 +511,61 @@ export const useGeneratorStore = defineStore('generator', () => {
     }
   }
 
+  // --- Actions: Local Drafts ---
+  const loadLocalDrafts = () => {
+    const saved = localStorage.getItem(LOCAL_DRAFTS_KEY)
+    if (saved) {
+      try {
+        localDrafts.value = JSON.parse(saved)
+      } catch (e) {
+        console.error('Failed to parse local drafts', e)
+        localDrafts.value = []
+      }
+    }
+  }
+
+  const saveLocalDraft = (draft: Partial<SharedPrompt>, isAuto = false) => {
+    // Generate ID if missing
+    const id = draft.id || `draft_${Date.now()}`
+    const timestamp = Date.now()
+
+    const newDraft: SharedPrompt = {
+      ...draft,
+      id,
+      status: 'draft',
+      // Store timestamp for sorting/display
+      _updatedAt: timestamp
+    } as SharedPrompt
+
+    const index = localDrafts.value.findIndex(d => d.id === id)
+    if (index >= 0) {
+      localDrafts.value[index] = newDraft
+    } else {
+      localDrafts.value.unshift(newDraft)
+    }
+
+    localStorage.setItem(LOCAL_DRAFTS_KEY, JSON.stringify(localDrafts.value))
+
+    if (!isAuto) {
+      addToast('success', 'Saved', 'Draft saved to box', 1500)
+    }
+    return id
+  }
+
+  const deleteLocalDraft = (id: string) => {
+    localDrafts.value = localDrafts.value.filter(d => d.id !== id)
+    localStorage.setItem(LOCAL_DRAFTS_KEY, JSON.stringify(localDrafts.value))
+    addToast('info', 'Deleted', 'Draft removed', 1000)
+  }
+
   // --- Local User Data ---
   try {
     const raw = localStorage.getItem(USER_PROMPTS_KEY)
     if (raw) userPrompts.value = JSON.parse(raw)
   } catch { }
 
-  const saveLocalDraft = (p: SharedPrompt) => {
-    userPrompts.value.unshift(p)
-    localStorage.setItem(USER_PROMPTS_KEY, JSON.stringify(userPrompts.value))
-    addToast('success', 'Saved', 'Draft saved locally', 1500)
-  }
+  // Load drafts on init
+  loadLocalDrafts()
 
   const searchArtists = (query: string): Artist[] => {
     const q = query.toLowerCase()
@@ -538,6 +583,7 @@ export const useGeneratorStore = defineStore('generator', () => {
     artists,
     toasts,
     favorites,
+    localDrafts,
     sharedPrompts,
     userPrompts,
     pendingSubmissions,
@@ -552,6 +598,8 @@ export const useGeneratorStore = defineStore('generator', () => {
     uploadToCatbox,
     saveLocalDraft,
     verifyModerator,
+    loadLocalDrafts,
+    deleteLocalDraft,
     loadPendingSubmissions,
     loadDraftSubmissions,
     loadRejectedSubmissions,

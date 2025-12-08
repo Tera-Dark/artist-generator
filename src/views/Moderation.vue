@@ -311,22 +311,52 @@ const handleDelete = async (id: string) => {
              <div v-if="store.pendingSubmissions.length === 0" class="text-center py-12 text-neutral-400">
                {{ t('admin.no_pending') }}
              </div>
-             <div v-for="item in store.pendingSubmissions" :key="item.id" class="card p-6 flex gap-6">
+             <div v-for="item in store.pendingSubmissions" :key="item.id" class="card p-6 flex flex-col md:flex-row gap-6">
                 <!-- Image Preview -->
-                <div v-if="item.image" class="w-32 h-32 flex-shrink-0 bg-neutral-100">
+                <div v-if="item.image" class="w-full md:w-48 h-48 flex-shrink-0 bg-neutral-100 border-2 border-black">
                   <img :src="item.image" class="w-full h-full object-cover">
                 </div>
-                <div class="flex-1">
+                <div class="flex-1 flex flex-col">
                    <div class="flex justify-between items-start mb-2">
-                     <h3 class="text-xl font-bold">{{ item.title }}</h3>
-                     <span class="text-xs font-mono bg-yellow-100 px-2 py-1">#{{ item._issueNumber }}</span>
+                     <div>
+                        <h3 class="text-xl font-bold">{{ item.title }}</h3>
+                        <p class="text-sm text-neutral-600">By {{ item.username }}</p>
+                     </div>
+                     <span class="text-xs font-mono bg-yellow-100 px-2 py-1 border border-yellow-300">#{{ item._issueNumber }}</span>
                    </div>
-                   <p class="text-sm text-neutral-600 mb-2">By {{ item.username }}</p>
-                   <div class="bg-neutral-100 p-3 font-mono text-xs mb-4 max-h-32 overflow-y-auto">{{ item.prompt }}</div>
-                   <div class="flex gap-2">
-                      <button @click="openEdit(item)" class="btn btn-secondary px-3 py-1 text-xs">{{ t('common.edit') }}</button>
-                      <button @click="handleApprove(item.id)" class="btn btn-primary px-3 py-1 text-xs">{{ t('common.quick') }} {{ t('common.confirm') }}</button>
-                      <button @click="handleReject(item.id)" class="btn bg-red-100 text-red-600 hover:bg-red-200 px-3 py-1 text-xs">{{ t('common.reject') }}</button>
+
+                   <div class="bg-neutral-100 p-3 font-mono text-xs mb-4 max-h-40 overflow-y-auto border border-neutral-200 flex-1">
+                      {{ item.prompt }}
+                   </div>
+
+                   <!-- Actions -->
+                   <div class="flex flex-wrap gap-3 mt-auto pt-4 border-t border-neutral-200">
+                       <button
+                          @click="handleApprove(item.id)"
+                          class="btn bg-green-600 text-white hover:bg-green-700 px-4 py-2 text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                       >
+                           {{ t('common.publish') }}
+                       </button>
+                       <button
+                          @click="handleReject(item.id)"
+                          class="btn bg-red-600 text-white hover:bg-red-700 px-4 py-2 text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                       >
+                           {{ t('common.reject') }}
+                       </button>
+                       <button
+                          @click="openEdit(item)"
+                          class="btn btn-secondary px-4 py-2 text-sm"
+                       >
+                           {{ t('common.edit') }}
+                       </button>
+                       <a
+                          v-if="item._issueNumber"
+                          :href="`https://github.com/${store.repoOwner}/${store.repoName}/issues/${item._issueNumber}`"
+                          target="_blank"
+                          class="btn btn-secondary px-4 py-2 text-sm ml-auto"
+                       >
+                          View Issue
+                       </a>
                    </div>
                 </div>
              </div>
