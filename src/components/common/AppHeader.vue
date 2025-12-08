@@ -13,7 +13,9 @@
         <RouterLink class="nav-link" active-class="nav-link-active" to="/library">{{ t('nav.artists') }}</RouterLink>
         <RouterLink class="nav-link" active-class="nav-link-active" to="/concept">{{ t('nav.workspace') }}</RouterLink>
         <RouterLink class="nav-link" active-class="nav-link-active" to="/prompts">{{ t('nav.share') }}</RouterLink>
-        <RouterLink class="nav-link" active-class="nav-link-active" to="/moderation">{{ t('nav.login') }}</RouterLink>
+        <RouterLink class="nav-link" active-class="nav-link-active" to="/moderation">
+            {{ store.user ? (store.user.login || 'User') : t('nav.login') }}
+        </RouterLink>
         <RouterLink class="nav-link icon-only" active-class="nav-link-active" to="/settings" :title="t('nav.settings')">
             <Settings class="w-5 h-5" />
         </RouterLink>
@@ -25,10 +27,21 @@
 <script setup lang="ts">
 import { Palette, Settings } from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+import { useGeneratorStore } from '@/stores/generator'
 
 const props = defineProps<{ title?: string; sectionLabel?: string }>()
 const title = props.title ?? 'Artist Generator'
 const { t } = useI18n()
+const router = useRouter()
+const store = useGeneratorStore()
+
+const handleRestrictedLink = (path: string) => {
+  if (path === '/moderation' && !store.user) {
+    // Optional: show a toast here if desired, but navigation to /moderation is allowed for login
+  }
+  router.push(path)
+}
 </script>
 
 <style scoped>

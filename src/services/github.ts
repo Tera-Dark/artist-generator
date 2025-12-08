@@ -31,6 +31,24 @@ export class GitHubService {
         return data
     }
 
+    // User: Get My Submissions (Issues created by me)
+    async getUserSubmissions() {
+        if (!this.octokit) throw new Error('Not logged in')
+
+        // Need to know current username
+        const user = await this.getUser()
+        const username = user.login
+
+        const { data } = await this.octokit.issues.listForRepo({
+            owner: this.owner,
+            repo: this.repo,
+            creator: username,
+            state: 'all', // Open and Closed
+            per_page: 100
+        })
+        return data
+    }
+
     // Admin: Get Pending Submissions (Issues)
     async getPendingIssues() {
         if (!this.octokit) throw new Error('Admin not logged in')

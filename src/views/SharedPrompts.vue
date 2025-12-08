@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useGeneratorStore } from '@/stores/generator'
 import AppHeader from '@/components/common/AppHeader.vue'
-import { Github, Upload, X, Image as ImageIcon } from 'lucide-vue-next'
+import { Github, Upload, X, Image as ImageIcon, Heart } from 'lucide-vue-next'
 import type { SharedPrompt } from '@/types'
 
 const store = useGeneratorStore()
@@ -81,6 +81,7 @@ const isLoading = computed(() => store.isLoading)
 
 onMounted(() => {
   store.loadSharedPrompts()
+  store.loadFavorites()
 })
 
 function handleNewPrompt() {
@@ -234,8 +235,17 @@ watch(showSubmitModal, (val) => {
           <div
             v-for="item in filteredPrompts"
             :key="item.id"
-            class="card p-0 flex flex-col group hover:-translate-y-1 transition-transform duration-200"
+            class="card p-0 flex flex-col group hover:-translate-y-1 transition-transform duration-200 relative"
           >
+            <button
+              @click.stop="store.toggleFavorite(item)"
+              class="absolute top-2 right-2 z-10 p-2 rounded-full bg-white/80 dark:bg-neutral-900/80 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+              :class="store.isFavorite(item.id) ? 'text-red-500' : 'text-neutral-400 hover:text-red-400'"
+              :title="store.isFavorite(item.id) ? 'Remove from favorites' : 'Add to favorites'"
+            >
+              <Heart :class="{'fill-current': store.isFavorite(item.id)}" :size="20" />
+            </button>
+
             <div class="p-6 flex-1 flex flex-col">
               <div class="flex items-start justify-between mb-3">
                 <h3 class="text-xl font-bold truncate pr-3" :title="item.title">{{ item.title || t('share.untitled') }}</h3>
@@ -291,7 +301,16 @@ watch(showSubmitModal, (val) => {
         </button>
 
         <div class="mb-8 pr-10">
-          <h2 class="text-3xl font-black mb-2">{{ selectedPrompt.title }}</h2>
+          <div class="flex items-center gap-3 mb-2">
+            <h2 class="text-3xl font-black">{{ selectedPrompt.title }}</h2>
+            <button
+              @click="store.toggleFavorite(selectedPrompt)"
+              class="p-1 rounded-full hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+              :class="store.isFavorite(selectedPrompt.id) ? 'text-red-500' : 'text-neutral-400 hover:text-red-400'"
+            >
+              <Heart :class="{'fill-current': store.isFavorite(selectedPrompt.id)}" :size="28" />
+            </button>
+          </div>
           <div class="flex items-center gap-4 text-sm text-neutral-500">
             <span class="font-bold flex items-center gap-1">
               <span class="w-4 h-4 bg-neutral-300 rounded-full block"></span>

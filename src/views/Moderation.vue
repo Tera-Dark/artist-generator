@@ -8,7 +8,7 @@ import { LogOut, User as UserIcon, Github } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const store = useGeneratorStore()
-const activeTab = ref<'pending' | 'published' | 'rejected' | 'draft'>('pending')
+const activeTab = ref<'pending' | 'published' | 'rejected' | 'draft' | 'my-submissions' | 'favorites'>('my-submissions')
 const isGuest = ref(false)
 
 // Edit State
@@ -32,6 +32,13 @@ onMounted(async () => {
     await store.handleAuthCallback(code)
   }
 
+  // Load User Data
+  if (store.user) {
+    store.loadFavorites()
+    store.loadUserSubmissions()
+  }
+
+  // Admin Data
   if (store.isModerator) {
     store.loadPendingSubmissions()
     store.loadDraftSubmissions()
@@ -42,6 +49,8 @@ watch(activeTab, (val) => {
   if (val === 'pending') store.loadPendingSubmissions()
   if (val === 'draft') store.loadDraftSubmissions()
   if (val === 'rejected') store.loadRejectedSubmissions()
+  if (val === 'my-submissions') store.loadUserSubmissions()
+  if (val === 'favorites') store.loadFavorites()
 })
 
 const publishedList = computed(() => {
@@ -182,23 +191,97 @@ const handleDelete = async (id: string) => {
           </div>
         </div>
 
-        <!-- 2. Admin View -->
-        <div v-else-if="store.isModerator">
+        <!-- 2. Dashboard (User + Admin) -->
+        <div v-else-if="store.user">
+           <!-- Profile Header -->
+           <div class="flex items-center gap-4 mb-8 p-6 bg-neutral-100 dark:bg-zinc-800 rounded-lg">
+             <div class="w-16 h-16 rounded-full bg-black text-white flex items-center justify-center text-2xl font-bold">
+               {{ store.user.login.slice(0, 2).toUpperCase() }}
+             </div>
+             <div>
+               <h2 class="text-2xl font-bold">{{ store.user.login }}</h2>
+               <p class="text-neutral-500">GitHub User</p>
+             </div>
+           </div>
+
           <!-- Tabs -->
-           <div class="flex gap-4 border-b-2 border-neutral-200 dark:border-neutral-800 mb-8 overflow-x-auto">
-            <button @click="activeTab = 'pending'" :class="['px-6 py-3 font-bold border-b-4 -mb-1 whitespace-nowrap', activeTab === 'pending' ? 'border-primary-500' : 'border-transparent']">
-               {{ t('admin.pending') }} ({{ store.pendingSubmissions.length }})
+           <div class="flex gap-4 border-b-2 border-neutral-200 dark:border-neutral-800 mb-8 overflow-x-auto pb-1">
+            <button @click="activeTab = 'my-submissions'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'my-submissions' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
+               My Submissions ({{ store.userPrompts.length }})
             </button>
-            <button @click="activeTab = 'draft'" :class="['px-6 py-3 font-bold border-b-4 -mb-1 whitespace-nowrap', activeTab === 'draft' ? 'border-primary-500' : 'border-transparent']">
-               {{ t('admin.drafts') }} ({{ store.draftSubmissions.length }})
+            <button @click="activeTab = 'favorites'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'favorites' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
+               Favorites ({{ store.favorites.length }})
             </button>
-            <button @click="activeTab = 'published'" :class="['px-6 py-3 font-bold border-b-4 -mb-1 whitespace-nowrap', activeTab === 'published' ? 'border-primary-500' : 'border-transparent']">
-               {{ t('admin.published') }} ({{ publishedList.length }})
-            </button>
-            <button @click="activeTab = 'rejected'" :class="['px-6 py-3 font-bold border-b-4 -mb-1 whitespace-nowrap', activeTab === 'rejected' ? 'border-primary-500' : 'border-transparent']">
-               {{ t('admin.rejected') }} ({{ store.rejectedSubmissions.length }})
-            </button>
+
+            <!-- Admin Tabs -->
+            <template v-if="store.isModerator">
+              <div class="w-px bg-neutral-300 dark:bg-neutral-700 mx-2 h-8 self-center"></div>
+              <button @click="activeTab = 'pending'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'pending' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
+                 {{ t('admin.pending') }} ({{ store.pendingSubmissions.length }})
+              </button>
+              <button @click="activeTab = 'draft'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'draft' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
+                 {{ t('admin.drafts') }} ({{ store.draftSubmissions.length }})
+              </button>
+              <button @click="activeTab = 'published'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'published' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
+                 {{ t('admin.published') }} ({{ publishedList.length }})
+              </button>
+              <button @click="activeTab = 'rejected'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'rejected' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
+                 {{ t('admin.rejected') }} ({{ store.rejectedSubmissions.length }})
+              </button>
+            </template>
           </div>
+
+          <!-- Content: My Submissions -->
+          <div v-if="activeTab === 'my-submissions'" class="space-y-6">
+             <div v-if="store.userPrompts.length === 0" class="text-center py-12 text-neutral-400 bg-neutral-50 dark:bg-zinc-800/50 rounded-lg border-dashed border-2">
+               You haven't submitted any prompts yet.
+             </div>
+             <div v-for="item in store.userPrompts" :key="item.id" class="card p-6 flex gap-6">
+                <div v-if="item.image" class="w-32 h-32 flex-shrink-0 bg-neutral-100">
+                  <img :src="item.image" class="w-full h-full object-cover">
+                </div>
+                <div class="flex-1">
+                   <div class="flex justify-between items-start mb-2">
+                     <h3 class="text-xl font-bold">{{ item.title || 'Untitled' }}</h3>
+                     <span
+                        class="text-xs font-mono px-2 py-1 uppercase font-bold"
+                        :class="{
+                          'bg-yellow-100 text-yellow-800': item.status === 'pending',
+                          'bg-green-100 text-green-800': item.status === 'published',
+                          'bg-red-100 text-red-800': item.status === 'rejected',
+                          'bg-neutral-200 text-neutral-800': !item.status
+                        }"
+                     >
+                       {{ item.status || 'Unknown' }} #{{ item._issueNumber }}
+                     </span>
+                   </div>
+                   <div class="bg-neutral-100 dark:bg-zinc-800 p-3 font-mono text-xs mb-4 max-h-32 overflow-y-auto">{{ item.prompt }}</div>
+                   <div class="flex gap-2">
+                      <a :href="`https://github.com/${store.repoOwner || 'Tera-Dark'}/${store.repoName || 'artist-generator'}/issues/${item._issueNumber}`" target="_blank" class="btn btn-secondary px-3 py-1 text-xs">View on GitHub</a>
+                   </div>
+                </div>
+             </div>
+          </div>
+
+          <!-- Content: Favorites -->
+          <div v-if="activeTab === 'favorites'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             <div v-if="store.favorites.length === 0" class="col-span-full text-center py-12 text-neutral-400 bg-neutral-50 dark:bg-zinc-800/50 rounded-lg border-dashed border-2">
+               No favorites yet. Go explore and star some prompts!
+             </div>
+             <div v-for="item in store.favorites" :key="item.id" class="card p-4 flex flex-col h-full hover:border-black transition-all group relative">
+                <button @click="store.toggleFavorite(item)" class="absolute top-2 right-2 p-2 bg-white/90 rounded-full hover:bg-red-50 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span class="text-xl">♥</span>
+                </button>
+                <div v-if="item.image" class="h-40 bg-neutral-100 mb-4 -mx-4 -mt-4 overflow-hidden border-b-2 border-black">
+                   <img :src="item.image" class="w-full h-full object-cover">
+                </div>
+                <h3 class="font-bold text-lg mb-1">{{ item.title }}</h3>
+                <p class="text-xs text-neutral-500 mb-4">By {{ item.username }}</p>
+                <div class="bg-neutral-100 dark:bg-zinc-800 p-2 text-xs font-mono mb-2 line-clamp-3">{{ item.prompt }}</div>
+             </div>
+          </div>
+
+          <!-- Content: Admin Views (Only if Moderator) -->
 
           <!-- Draft Items -->
           <div v-if="activeTab === 'draft'" class="space-y-6">

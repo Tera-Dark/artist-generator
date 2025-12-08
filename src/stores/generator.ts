@@ -19,10 +19,16 @@ export const useGeneratorStore = defineStore('generator', () => {
   const isModerator = ref(false)
   const user = ref<any>(null)
 
+  // Favorites (Persisted locally)
+  const favorites = ref<SharedPrompt[]>([])
+  const FAVORITES_KEY = 'ag_favorites_v1'
+
   // Config
   const ARTISTS_TTL_MS = 15 * 60 * 1000
   const PROMPTS_TTL_MS = 5 * 60 * 1000
   const USER_PROMPTS_KEY = 'ag_user_prompts_v1'
+  const repoOwner = import.meta.env.VITE_REPO_OWNER || ''
+  const repoName = import.meta.env.VITE_REPO_NAME || ''
 
   // --- Helpers ---
   const addToast = (type: 'success' | 'error' | 'warning' | 'info', title: string, message: string, duration = 3000) => {
@@ -76,6 +82,76 @@ export const useGeneratorStore = defineStore('generator', () => {
     user.value = null
     // Reload to clear state cleanly
     window.location.reload()
+  }
+
+  // --- Actions: Favorites ---
+  const loadFavorites = () => {
+    const saved = localStorage.getItem(FAVORITES_KEY)
+    if (saved) {
+      try {
+        favorites.value = JSON.parse(saved)
+      } catch (e) {
+        console.error('Failed to parse favorites', e)
+        favorites.value = []
+      }
+    }
+  }
+
+  const toggleFavorite = (item: SharedPrompt) => {
+    const index = favorites.value.findIndex(f => f.id === item.id)
+    if (index >= 0) {
+      favorites.value.splice(index, 1)
+      addToast('info', 'Removed', 'Removed from favorites', 1000)
+    } else {
+      favorites.value.push(item)
+      addToast('success', 'Saved', 'Added to favorites', 1000)
+    }
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites.value))
+  }
+
+  const isFavorite = (id: string) => {
+    return favorites.value.some(f => f.id === id)
+  }
+
+  // --- Actions: User Submissions ---
+  const loadUserSubmissions = async () => {
+    if (!authService.getToken()) return
+    isLoading.value = true
+    try {
+      // 1. Get Issues from GitHub
+      const issues = await githubService.getUserSubmissions()
+
+      // 2. Map to SharedPrompt
+      userPrompts.value = issues.map((i: any) => {
+          let content: any = {}
+          try {
+              // Try to parse body as JSON block
+              const jsonMatch = i.body?.match(/```json\n([\s\S]*?)\n```/)
+              if (jsonMatch) {
+                  content = JSON.parse(jsonMatch[1])
+              } else {
+                  // Fallback
+                  content = { title: i.title, description: i.body }
+              }
+          } catch (e) {
+              content = { title: i.title, description: i.body }
+          }
+
+          return {
+              ...content,
+              id: content.id || i.id.toString(), // Use content ID if avail, else Issue ID
+              _issueNumber: i.number,
+              status: i.state === 'closed' ? (i.labels.find((l:any) => l.name === 'approved') ? 'published' : 'rejected') : 'pending', // Rough status mapping
+              // Enhance with label info if possible
+              username: i.user.login
+          }
+      })
+    } catch (e) {
+      console.error(e)
+      addToast('error', 'Error', 'Failed to load your submissions')
+    } finally {
+      isLoading.value = false
+    }
   }
 
   // --- Actions: Artists ---
@@ -429,8 +505,11 @@ export const useGeneratorStore = defineStore('generator', () => {
   return {
     isLoading,
     artistsLoadedAt,
+    repoOwner,
+    repoName,
     artists,
     toasts,
+    favorites,
     sharedPrompts,
     userPrompts,
     pendingSubmissions,
@@ -446,6 +525,10 @@ export const useGeneratorStore = defineStore('generator', () => {
     loadPendingSubmissions,
     loadDraftSubmissions,
     loadRejectedSubmissions,
+    loadUserSubmissions,
+    loadFavorites,
+    toggleFavorite,
+    isFavorite,
     updatePendingSubmission,
     saveAsDraft,
     moveToReview,
