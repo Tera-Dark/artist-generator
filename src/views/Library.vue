@@ -367,10 +367,7 @@ watch(currentPage, (val) => {
 })
 
 
-const handlePageJump = () => {
-  const p = Math.max(1, Math.min(totalPages.value, pageInput.value))
-  currentPage.value = p
-}
+
 
 const viewMode = ref<'list' | 'grid'>('list')
 const postMin = ref(0)
