@@ -120,45 +120,7 @@ export const useGeneratorStore = defineStore('generator', () => {
   }
 
   // --- Actions: User Submissions ---
-  const loadUserSubmissions = async () => {
-    if (!authService.getToken()) return
-    isLoading.value = true
-    try {
-      // 1. Get Issues from GitHub
-      const issues = await githubService.getUserSubmissions()
-
-      // 2. Map to SharedPrompt
-      userPrompts.value = issues.map((i: any) => {
-          let content: any = {}
-          try {
-              // Try to parse body as JSON block
-              const jsonMatch = i.body?.match(/```json\n([\s\S]*?)\n```/)
-              if (jsonMatch) {
-                  content = JSON.parse(jsonMatch[1])
-              } else {
-                  // Fallback
-                  content = { title: i.title, description: i.body }
-              }
-          } catch (e) {
-              content = { title: i.title, description: i.body }
-          }
-
-          return {
-              ...content,
-              id: content.id || i.id.toString(), // Use content ID if avail, else Issue ID
-              _issueNumber: i.number,
-              status: i.state === 'closed' ? (i.labels.find((l:any) => l.name === 'approved') ? 'published' : 'rejected') : 'pending', // Rough status mapping
-              // Enhance with label info if possible
-              username: i.user.login
-          }
-      })
-    } catch (e) {
-      console.error(e)
-      addToast('error', 'Error', 'Failed to load your submissions')
-    } finally {
-      isLoading.value = false
-    }
-  }
+  // (Moved to below to use consistent logic)
 
   // --- Actions: Artists ---
   let pendingArtistLoad: Promise<void> | null = null
@@ -727,6 +689,7 @@ export const useGeneratorStore = defineStore('generator', () => {
     addToast,
     removeToast,
     searchArtists,
+    initAuth,
     loginWithGitHub,
     logout,
     handleAuthCallback

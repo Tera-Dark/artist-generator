@@ -327,7 +327,7 @@ ${data.description}
     // User: Delete Submission (Close Issue)
     async deleteIssue(issueNumber: number) {
         if (!this.octokit) throw new Error('Not logged in')
-        
+
         // Just close the issue
         await this.octokit.issues.update({
             owner: this.owner,
