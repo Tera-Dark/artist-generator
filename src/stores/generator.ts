@@ -195,7 +195,17 @@ export const useGeneratorStore = defineStore('generator', () => {
     isLoading.value = true
     try {
       const base = import.meta.env.BASE_URL
-      sharedPrompts.value = await dataStorage.getAllPrompts(base)
+      // Try to get repo config from state or env to enable Raw Fetch
+      const owner = repoOwner || user.value?.login // Fallback to current user if logged in
+      const repo = repoName || 'artist-generator' // Fallback to default name if unknown
+
+      console.log('[GeneratorStore] Loading prompts with config:', { base, owner, repo })
+
+      sharedPrompts.value = await dataStorage.getAllPrompts(base, {
+          owner,
+          repo,
+          branch: 'main'
+      })
     } catch (e) {
       console.warn('Failed to load prompts', e)
       sharedPrompts.value = []

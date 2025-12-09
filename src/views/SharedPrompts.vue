@@ -145,9 +145,11 @@ const allTags = computed(() => {
 
 const filteredPrompts = computed(() => {
   let arr = [...store.sharedPrompts]
+  console.log(`[SharedPrompts] Total loaded: ${arr.length}`)
 
   if (activeTag.value) {
     arr = arr.filter(p => p.tags.includes(activeTag.value))
+    console.log(`[SharedPrompts] After tag filter: ${arr.length}`)
   }
 
   if (keywords.value.length) {
@@ -162,6 +164,7 @@ const filteredPrompts = computed(() => {
         kw => prompt.includes(kw) || title.includes(kw) || tagsStr.includes(kw) || descStr.includes(kw) || userStr.includes(kw)
       )
     })
+    console.log(`[SharedPrompts] After keyword filter: ${arr.length}`)
   }
 
   return arr
@@ -262,6 +265,14 @@ watch(searchQuery, () => {
 watch(showSubmitModal, (val) => {
   if (val && store.user) {
     form.value.username = store.user.login
+  }
+})
+
+// Reload prompts when user logs in (to enable GitHub Raw fetch if available)
+watch(() => store.user, (val) => {
+  if (val) {
+    console.log('[SharedPrompts] User authenticated, reloading data with potential Raw access...')
+    store.loadSharedPrompts({ force: true })
   }
 })
 </script>

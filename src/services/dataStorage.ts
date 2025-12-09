@@ -18,15 +18,16 @@ export const dataStorage = {
      * Efficiently loads all shared prompts by fetching chunks in parallel
      * @param baseUrl - The base URL of the application (e.g. from import.meta.env.BASE_URL)
      */
-    async getAllPrompts(baseUrl: string = ''): Promise<SharedPrompt[]> {
+    async getAllPrompts(baseUrl: string = '', repoConfig?: { owner: string, repo: string, branch?: string }): Promise<SharedPrompt[]> {
         try {
             const cleanBase = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/'
             const timestamp = Date.now() // Cache busting
 
             // Config for Raw GitHub Fetching (Freshest Data)
-            const owner = import.meta.env.VITE_REPO_OWNER
-            const repo = import.meta.env.VITE_REPO_NAME
-            const branch = 'main'
+            // Priority: Passed config > Env vars
+            const owner = repoConfig?.owner || import.meta.env.VITE_REPO_OWNER
+            const repo = repoConfig?.repo || import.meta.env.VITE_REPO_NAME
+            const branch = repoConfig?.branch || 'main'
             let rawBase = ''
             let useRaw = false
 
