@@ -85,8 +85,13 @@ export class GitHubService {
                     const indexRes = await this._fetchJson(INDEX_PATH)
                     indexData = indexRes.content
                     indexSha = indexRes.sha
-                } catch (e) {
-                    console.log('Index not found, initializing...')
+                } catch (e: any) {
+                    if (e.status === 404) {
+                        console.log('Index not found, initializing...')
+                    } else {
+                        console.error('Failed to fetch index', e)
+                        throw e // Abort on network/auth errors to prevent overwriting index
+                    }
                 }
 
                 // 2. Determine Target Chunk
@@ -117,9 +122,15 @@ export class GitHubService {
                             chunkSha = undefined
                         }
                     } catch (e) {
-                        // Should not happen if index exists, but fallback
+                        // CRITICAL FIX: If we fail to read the existing chunk, DO NOT overwrite it.
+                        // Instead, create a new chunk to ensure we don't lose existing data.
+                        console.warn(`Failed to read existing chunk ${targetChunkPath}, creating new chunk to avoid data loss.`, e)
+                        
+                        const nextIndex = indexData.chunks.length
+                        targetChunkPath = `${BASE_PATH}/chunk_${nextIndex}.json`
                         isNewChunk = true
                         chunkContent = []
+                        chunkSha = undefined
                     }
                 }
 
