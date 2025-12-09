@@ -1,10 +1,28 @@
 [
   {
+    "title": "测试1",
+    "username": "Tera-Dark",
+    "prompt": "z3zz4,rella,(gishiki_\\\\(gshk\\\\):0.8),[pikuson,cheonyeon-hi :limited palette:15],john kafka,",
+    "model": "NoobAI",
+    "tags": [
+      "测试"
+    ],
+    "description": "测试",
+    "image": "https://files.catbox.moe/xl0nuf.png",
+    "id": "issue_2",
+    "status": "published",
+    "approved_at": 1765244585837
+  },
+  {
     "id": "official_001",
     "title": "赛博朋克霓虹夜景",
     "prompt": "cyberpunk city, neon lights, night, rain, reflections, high detail, 8k resolution, futuristic buildings, flying cars",
     "model": "NAI 4.5",
-    "tags": ["Scenery", "Sci-Fi", "Cyberpunk"],
+    "tags": [
+      "Scenery",
+      "Sci-Fi",
+      "Cyberpunk"
+    ],
     "description": "经典的赛博朋克城市夜景，强调霓虹灯光和雨水反射。",
     "author": "System",
     "status": "published",
@@ -17,7 +35,11 @@
     "title": "吉卜力风格田园",
     "prompt": "ghibli style, anime style, lush green field, blue sky, white clouds, summer, gentle breeze, watercolor texture",
     "model": "NAI 4.5",
-    "tags": ["Anime", "Scenery", "Ghibli"],
+    "tags": [
+      "Anime",
+      "Scenery",
+      "Ghibli"
+    ],
     "description": "清新治愈的吉卜力画风，适合夏日田园场景。",
     "author": "System",
     "status": "published",
@@ -30,7 +52,11 @@
     "title": "油画质感肖像",
     "prompt": "oil painting, thick brushstrokes, portrait of a young woman, elegant, classical, rembrandt lighting, detailed eyes",
     "model": "NAI 4.5",
-    "tags": ["Portrait", "Artistic", "Oil Painting"],
+    "tags": [
+      "Portrait",
+      "Artistic",
+      "Oil Painting"
+    ],
     "description": "模拟古典油画质感的人物肖像。",
     "author": "System",
     "status": "published",
