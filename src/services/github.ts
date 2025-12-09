@@ -54,12 +54,12 @@ export class GitHubService {
     async getPendingIssues() {
         if (!this.octokit) throw new Error('Admin not logged in')
 
-        // Fetch issues with label 'submission' or just all open issues
+        // Fetch all open issues to catch submissions without labels (from non-collaborators)
         const { data } = await this.octokit.issues.listForRepo({
             owner: this.owner,
             repo: this.repo,
             state: 'open',
-            labels: 'submission'
+            per_page: 100
         })
         return data
     }

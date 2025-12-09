@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import AppHeader from '@/components/common/AppHeader.vue'
 import { useGeneratorStore } from '@/stores/generator'
 import type { SharedPrompt } from '@/types'
-import { LogOut, User as UserIcon, Github } from 'lucide-vue-next'
+import { LogOut, User as UserIcon, Github, RefreshCcw } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const store = useGeneratorStore()
@@ -45,6 +45,21 @@ onMounted(async () => {
   }
 })
 
+// Reactivity for Auth State
+watch(() => store.user, (u) => {
+  if (u) {
+    store.loadUserSubmissions()
+    store.loadFavorites()
+  }
+}, { immediate: true })
+
+watch(() => store.isModerator, (isMod) => {
+  if (isMod) {
+    store.loadPendingSubmissions()
+    store.loadDraftSubmissions()
+  }
+}, { immediate: true })
+
 watch(activeTab, (val) => {
   if (val === 'pending') store.loadPendingSubmissions()
   if (val === 'draft') store.loadDraftSubmissions()
@@ -52,6 +67,15 @@ watch(activeTab, (val) => {
   if (val === 'my-submissions') store.loadUserSubmissions()
   if (val === 'favorites') store.loadFavorites()
 })
+
+const refreshCurrentTab = () => {
+  if (activeTab.value === 'pending') store.loadPendingSubmissions()
+  if (activeTab.value === 'draft') store.loadDraftSubmissions()
+  if (activeTab.value === 'rejected') store.loadRejectedSubmissions()
+  if (activeTab.value === 'my-submissions') store.loadUserSubmissions()
+  if (activeTab.value === 'favorites') store.loadFavorites()
+  store.addToast('info', 'Refreshed', 'Data updated', 1000)
+}
 
 const publishedList = computed(() => {
   return store.sharedPrompts.filter(p => p.status === 'published' || p.status === 'approved')
@@ -115,6 +139,7 @@ const saveEdit = async (action: 'save' | 'publish' | 'draft' | 'review' = 'save'
   // Identify Item Type
   const pendingItem = store.pendingSubmissions.find(p => p.id === editForm.value.id)
   const draftItem = store.draftSubmissions.find(p => p.id === editForm.value.id)
+  const userItem = store.userPrompts.find(p => p.id === editForm.value.id)
 
   if (pendingItem) {
      // Actions for Pending: Publish, Save as Draft, Update (Save)
@@ -126,6 +151,12 @@ const saveEdit = async (action: 'save' | 'publish' | 'draft' | 'review' = 'save'
      if (action === 'publish') await store.approveSubmission(editForm.value.id, editForm.value)
      else if (action === 'review') await store.moveToReview(editForm.value.id, editForm.value)
      else await store.saveAsDraft(editForm.value.id, editForm.value)
+  } else if (userItem) {
+     // Regular user updating their own submission
+     await store.updatePendingSubmission(editForm.value.id, editForm.value)
+     // Manually update local state
+     const idx = store.userPrompts.findIndex(p => p.id === userItem.id)
+     if (idx !== -1) store.userPrompts[idx] = { ...userItem, ...editForm.value }
   } else {
      // Published Item -> Update
      await store.updatePublishedPrompt(editForm.value)
@@ -205,31 +236,36 @@ const handleDelete = async (id: string) => {
            </div>
 
           <!-- Tabs -->
-           <div class="flex gap-4 border-b-2 border-neutral-200 dark:border-neutral-800 mb-8 overflow-x-auto pb-1">
-            <button @click="activeTab = 'my-submissions'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'my-submissions' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
-               {{ t('admin.my_submissions') }} ({{ store.userPrompts.length }})
-            </button>
-            <button @click="activeTab = 'favorites'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'favorites' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
-               {{ t('admin.favorites') }} ({{ store.favorites.length }})
-            </button>
+           <div class="flex items-center justify-between border-b-2 border-neutral-200 dark:border-neutral-800 mb-8 pb-1">
+             <div class="flex gap-4 overflow-x-auto -mb-1.5">
+              <button @click="activeTab = 'my-submissions'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'my-submissions' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
+                 {{ t('admin.my_submissions') }} ({{ store.userPrompts.length }})
+              </button>
+              <button @click="activeTab = 'favorites'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'favorites' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
+                 {{ t('admin.favorites') }} ({{ store.favorites.length }})
+              </button>
 
-            <!-- Admin Tabs -->
-            <template v-if="store.isModerator">
-              <div class="w-px bg-neutral-300 dark:bg-neutral-700 mx-2 h-8 self-center"></div>
-              <button @click="activeTab = 'pending'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'pending' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
-                 {{ t('admin.pending') }} ({{ store.pendingSubmissions.length }})
-              </button>
-              <button @click="activeTab = 'draft'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'draft' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
-                 {{ t('admin.drafts') }} ({{ store.draftSubmissions.length }})
-              </button>
-              <button @click="activeTab = 'published'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'published' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
-                 {{ t('admin.published') }} ({{ publishedList.length }})
-              </button>
-              <button @click="activeTab = 'rejected'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'rejected' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
-                 {{ t('admin.rejected') }} ({{ store.rejectedSubmissions.length }})
-              </button>
-            </template>
-          </div>
+              <!-- Admin Tabs -->
+              <template v-if="store.isModerator">
+                <div class="w-px bg-neutral-300 dark:bg-neutral-700 mx-2 h-8 self-center"></div>
+                <button @click="activeTab = 'pending'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'pending' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
+                   {{ t('admin.pending') }} ({{ store.pendingSubmissions.length }})
+                </button>
+                <button @click="activeTab = 'draft'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'draft' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
+                   {{ t('admin.drafts') }} ({{ store.draftSubmissions.length }})
+                </button>
+                <button @click="activeTab = 'published'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'published' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
+                   {{ t('admin.published') }} ({{ publishedList.length }})
+                </button>
+                <button @click="activeTab = 'rejected'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'rejected' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
+                   {{ t('admin.rejected') }} ({{ store.rejectedSubmissions.length }})
+                </button>
+              </template>
+             </div>
+             <button @click="refreshCurrentTab" class="btn btn-secondary text-xs px-3 py-1 mb-2 ml-4 flex-shrink-0 flex items-center gap-1">
+                <RefreshCcw class="w-3 h-3" /> Refresh
+             </button>
+           </div>
 
           <!-- Content: My Submissions -->
           <div v-if="activeTab === 'my-submissions'" class="space-y-6">
@@ -258,6 +294,7 @@ const handleDelete = async (id: string) => {
                    <div class="bg-neutral-100 dark:bg-zinc-800 p-3 font-mono text-xs mb-4 max-h-32 overflow-y-auto">{{ item.prompt }}</div>
                    <div class="flex gap-2">
                       <a :href="`https://github.com/${store.repoOwner || 'Tera-Dark'}/${store.repoName || 'artist-generator'}/issues/${item._issueNumber}`" target="_blank" class="btn btn-secondary px-3 py-1 text-xs">{{ t('admin.view_github') }}</a>
+                      <button v-if="item.status === 'pending' || item.status === 'draft'" @click="openEdit(item)" class="btn btn-secondary px-3 py-1 text-xs">{{ t('common.edit') }}</button>
                    </div>
                 </div>
              </div>

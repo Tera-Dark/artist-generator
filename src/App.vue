@@ -25,6 +25,7 @@ function handleKey(e: KeyboardEvent) {
 }
 
 onMounted(() => {
+  store.initAuth()
   const saved = localStorage.getItem('theme') as 'light' | 'dark' | null
   if (saved === 'light' || saved === 'dark') {
     applyTheme(saved)

@@ -227,7 +227,9 @@ export const useGeneratorStore = defineStore('generator', () => {
             created_at: data.created_at || Date.now()
         }
         const issue = await githubService.submitIssue(payload)
-        addToast('success', 'Submitted', 'Issue created successfully', 2000)
+        addToast('success', 'Submitted', 'Submission received! Check "My Submissions" in Profile.', 3000)
+        // Refresh user submissions immediately
+        loadUserSubmissions()
         return issue
     } catch (e) {
         addToast('error', 'Error', 'Failed to create issue', 3000)
@@ -260,6 +262,7 @@ export const useGeneratorStore = defineStore('generator', () => {
         const u = await githubService.getUser()
         user.value = u
         addToast('success', 'Logged In', `Welcome, ${u.login}`, 2000)
+        loadUserSubmissions()
       } catch (e) {
         console.warn('Failed to fetch user profile', e)
       }
@@ -305,7 +308,13 @@ export const useGeneratorStore = defineStore('generator', () => {
                 data.image = imgMatch[1] // Use the uploaded asset URL
               }
             }
-            list.push(data)
+
+            // Filter out drafts from pending list
+            const isDraft = issue.labels.some((l: any) => (typeof l === 'string' ? l : l.name) === 'draft')
+            if (!isDraft) {
+                data.status = 'pending'
+                list.push(data)
+            }
           } catch (e) { console.warn('Failed to parse issue', issue.number) }
         }
       })
@@ -371,6 +380,48 @@ export const useGeneratorStore = defineStore('generator', () => {
     }
   }
 
+  const loadUserSubmissions = async () => {
+    if (!user.value) return
+    isLoading.value = true
+    try {
+      const issues = await githubService.getUserSubmissions()
+      const list: SharedPrompt[] = []
+      issues.forEach((issue: any) => {
+        const match = issue.body?.match(/```json([\s\S]*?)```/)
+        if (match && match[1]) {
+          try {
+            const data = JSON.parse(match[1])
+            data.id = data.id || `issue_${issue.number}`
+            data._issueNumber = issue.number
+            data.username = issue.user?.login
+
+            // Determine status
+            if (issue.state === 'closed') {
+                 // Check labels for reason
+                 const labels = issue.labels.map((l: any) => typeof l === 'string' ? l : l.name)
+                 if (labels.includes('approved')) data.status = 'approved'
+                 else if (labels.includes('rejected')) data.status = 'rejected'
+                 else data.status = 'closed'
+            } else {
+                 data.status = 'pending'
+                 // Check if it is a draft
+                 const labels = issue.labels.map((l: any) => typeof l === 'string' ? l : l.name)
+                 if (labels.includes('draft')) data.status = 'draft'
+            }
+
+            list.push(data)
+          } catch (e) { }
+        }
+      })
+      userPrompts.value = list
+    } catch (e) {
+      console.error(e)
+      addToast('error', 'Error', 'Failed to load your submissions', 2000)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   const saveAsDraft = async (id: string, data: SharedPrompt) => {
     const item = pendingSubmissions.value.find(p => p.id === id) || draftSubmissions.value.find(p => p.id === id)
     if (!item || !item._issueNumber) return
@@ -419,15 +470,20 @@ export const useGeneratorStore = defineStore('generator', () => {
   }
 
   const updatePendingSubmission = async (id: string, data: SharedPrompt) => {
-    const item = pendingSubmissions.value.find(p => p.id === id)
+    const item = pendingSubmissions.value.find(p => p.id === id) || userPrompts.value.find(p => p.id === id)
     if (!item || !item._issueNumber) return
 
     isLoading.value = true
     try {
         await githubService.updateIssue(item._issueNumber, data)
-        const idx = pendingSubmissions.value.findIndex(p => p.id === id)
-        if (idx !== -1) {
-            pendingSubmissions.value[idx] = { ...pendingSubmissions.value[idx], ...data }
+        // Update local state in both lists
+        const pendingIdx = pendingSubmissions.value.findIndex(p => p.id === id)
+        if (pendingIdx !== -1) {
+            pendingSubmissions.value[pendingIdx] = { ...pendingSubmissions.value[pendingIdx], ...data }
+        }
+        const userIdx = userPrompts.value.findIndex(p => p.id === id)
+        if (userIdx !== -1) {
+            userPrompts.value[userIdx] = { ...userPrompts.value[userIdx], ...data }
         }
         addToast('success', 'Updated', 'Issue updated successfully', 2000)
     } catch (e) {
