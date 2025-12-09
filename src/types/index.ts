@@ -33,4 +33,6 @@ export interface SharedPrompt {
   downvotes?: number
   views?: number // 浏览量
   _issueNumber?: number // Internal for GitHub Issues
+  _chunkPath?: string // Internal for Chunked Storage
+  _updatedAt?: number // Internal for Local Drafts
 }

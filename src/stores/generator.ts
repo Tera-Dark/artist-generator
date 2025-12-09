@@ -482,7 +482,6 @@ export const useGeneratorStore = defineStore('generator', () => {
   }
 
   const deletePublishedPrompt = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this prompt globally?')) return
     isLoading.value = true
     try {
       const item = sharedPrompts.value.find(p => p.id === id)

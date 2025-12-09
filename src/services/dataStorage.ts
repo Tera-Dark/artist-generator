@@ -23,18 +23,51 @@ export const dataStorage = {
             const cleanBase = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/'
             const timestamp = Date.now() // Cache busting
 
+            // Config for Raw GitHub Fetching (Freshest Data)
+            const owner = import.meta.env.VITE_REPO_OWNER
+            const repo = import.meta.env.VITE_REPO_NAME
+            const branch = 'main'
+            let rawBase = ''
+            let useRaw = false
+
+            if (owner && repo) {
+                useRaw = true
+                rawBase = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/public/`
+                console.log(`[DataStorage] Enabled GitHub Raw fetch: ${rawBase}`)
+            }
+
+            console.log(`[DataStorage] Loading prompts from ${cleanBase}`)
+
+            // Helper to fetch with fallback
+            const fetchResource = async (path: string) => {
+                if (useRaw) {
+                    try {
+                        const res = await fetch(`${rawBase}${path}?t=${timestamp}`)
+                        if (res.ok) return res
+                    } catch (e) {
+                        console.warn(`[DataStorage] Raw fetch failed for ${path}, falling back`)
+                    }
+                }
+                return fetch(`${cleanBase}${path}?t=${timestamp}`)
+            }
+
             // 1. Fetch Index
-            const indexRes = await fetch(`${cleanBase}data/index.json?t=${timestamp}`)
+            const indexRes = await fetchResource('data/index.json')
             if (!indexRes.ok) {
                 // Fallback for legacy or empty state
-                console.warn('Index not found, trying legacy prompts.json')
-                const legacyRes = await fetch(`${cleanBase}data/prompts.json?t=${timestamp}`)
-                if (legacyRes.ok) return await legacyRes.json()
+                console.warn('[DataStorage] Index not found, trying legacy prompts.json')
+                const legacyRes = await fetchResource('data/prompts.json')
+                if (legacyRes.ok) {
+                    const legacyData = await legacyRes.json()
+                    console.log(`[DataStorage] Loaded ${legacyData.length} legacy prompts`)
+                    return legacyData
+                }
                 return []
             }
 
             const indexData: StorageIndex = await indexRes.json()
             const chunks = indexData.chunks || []
+            console.log(`[DataStorage] Found index with ${chunks.length} chunks, total items: ${indexData.total}`)
 
             if (chunks.length === 0) return []
 
@@ -46,7 +79,7 @@ export const dataStorage = {
             for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
                 const batch = chunks.slice(i, i + BATCH_SIZE)
                 const batchPromises = batch.map((chunkName: string) =>
-                    fetch(`${cleanBase}data/${chunkName}?t=${timestamp}`)
+                    fetchResource(`data/${chunkName}`)
                         .then(r => r.json())
                         .then(items => {
                             // Inject metadata about source chunk for easier updates/deletes
@@ -56,11 +89,12 @@ export const dataStorage = {
                             }))
                         })
                         .catch(e => {
-                            console.error(`Failed to load chunk ${chunkName}`, e)
+                            console.error(`[DataStorage] Failed to load chunk ${chunkName}`, e)
                             return []
                         })
                 )
                 const batchResults = await Promise.all(batchPromises)
+                console.log(`[DataStorage] Batch loaded. Items: ${batchResults.map(b => b.length).join(', ')}`)
                 results.push(...batchResults)
             }
 
