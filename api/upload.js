@@ -20,7 +20,7 @@ export default async function handler(req) {
 
   try {
     const catboxUrl = 'https://catbox.moe/user/api.php';
-    
+
     // Forward the request to Catbox
     const response = await fetch(catboxUrl, {
       method: 'POST',

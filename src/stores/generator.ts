@@ -222,7 +222,11 @@ export const useGeneratorStore = defineStore('generator', () => {
   const submitIssue = async (data: any) => {
     isLoading.value = true
     try {
-        const issue = await githubService.submitIssue(data)
+        const payload = {
+            ...data,
+            created_at: data.created_at || Date.now()
+        }
+        const issue = await githubService.submitIssue(payload)
         addToast('success', 'Submitted', 'Issue created successfully', 2000)
         return issue
     } catch (e) {

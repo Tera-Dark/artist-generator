@@ -164,7 +164,7 @@ const handleDelete = async (id: string) => {
         </div>
 
         <!-- 1. Unified Login -->
-        <div v-if="!store.isModerator && !isGuest" class="max-w-md mx-auto mt-20">
+        <div v-if="!store.user && !isGuest" class="max-w-md mx-auto mt-20">
           <div class="card p-8 border-2 border-black flex flex-col gap-6 shadow-[8px_8px_0_0_#000]">
             <h2 class="text-3xl font-black text-center uppercase">{{ t('auth.identity_check') }}</h2>
 

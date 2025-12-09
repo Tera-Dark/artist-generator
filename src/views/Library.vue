@@ -322,6 +322,11 @@
             >
               下一页
             </button>
+
+            <form @submit.prevent="handlePageJump" class="flex items-center gap-1 ml-2">
+                <input v-model.number="pageInput" type="number" min="1" :max="totalPages" class="w-12 h-8 px-1 text-center border border-neutral-300 dark:border-neutral-700 rounded text-xs bg-transparent" />
+                <button type="submit" class="btn btn-secondary text-xs px-2 py-1.5">Go</button>
+            </form>
           </div>
         </div>
       </div>
@@ -353,8 +358,15 @@ watch(query, (val) => {
 const isLoading = computed(() => store.isLoading)
 const pageSize = ref(50)
 const currentPage = ref(1)
+const pageInput = ref(1)
 const sortKey = ref<'count' | 'name'>('count')
 const sortOrder = ref<'asc' | 'desc'>('desc')
+
+watch(currentPage, (val) => {
+  pageInput.value = val
+})
+
+
 const viewMode = ref<'list' | 'grid'>('list')
 const postMin = ref(0)
 const postMax = ref(0)
@@ -497,6 +509,12 @@ watch(onlyFavorites, (v) => {
 
 async function refreshArtists() {
   await store.loadArtists({ force: true })
+}
+
+function handlePageJump() {
+  const p = Math.max(1, Math.min(totalPages.value, pageInput.value))
+  currentPage.value = p
+  pageInput.value = p
 }
 
 function formatOtherNames(names: string[] = []): string {
