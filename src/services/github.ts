@@ -324,6 +324,20 @@ ${data.description}
         return issue
     }
 
+    // User: Delete Submission (Close Issue)
+    async deleteIssue(issueNumber: number) {
+        if (!this.octokit) throw new Error('Not logged in')
+        
+        // Just close the issue
+        await this.octokit.issues.update({
+            owner: this.owner,
+            repo: this.repo,
+            issue_number: issueNumber,
+            state: 'closed',
+            state_reason: 'completed'
+        })
+    }
+
     // Admin: Check Permissions
     async checkPermissions() {
         if (!this.octokit) return false

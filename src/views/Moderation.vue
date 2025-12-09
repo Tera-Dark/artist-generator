@@ -153,10 +153,11 @@ const saveEdit = async (action: 'save' | 'publish' | 'draft' | 'review' = 'save'
      else await store.saveAsDraft(editForm.value.id, editForm.value)
   } else if (userItem) {
      // Regular user updating their own submission
-     await store.updatePendingSubmission(editForm.value.id, editForm.value)
-     // Manually update local state
-     const idx = store.userPrompts.findIndex(p => p.id === userItem.id)
-     if (idx !== -1) store.userPrompts[idx] = { ...userItem, ...editForm.value }
+     if (action === 'review') {
+        await store.moveToReview(editForm.value.id, editForm.value)
+     } else {
+        await store.updatePendingSubmission(editForm.value.id, editForm.value)
+     }
   } else {
      // Published Item -> Update
      await store.updatePublishedPrompt(editForm.value)
@@ -295,6 +296,7 @@ const handleDelete = async (id: string) => {
                    <div class="flex gap-2">
                       <a :href="`https://github.com/${store.repoOwner || 'Tera-Dark'}/${store.repoName || 'artist-generator'}/issues/${item._issueNumber}`" target="_blank" class="btn btn-secondary px-3 py-1 text-xs">{{ t('admin.view_github') }}</a>
                       <button v-if="item.status === 'pending' || item.status === 'draft'" @click="openEdit(item)" class="btn btn-secondary px-3 py-1 text-xs">{{ t('common.edit') }}</button>
+                      <button v-if="item.status === 'pending' || item.status === 'draft'" @click="store.deleteUserSubmission(item.id)" class="btn bg-red-600 text-white hover:bg-red-700 px-3 py-1 text-xs">{{ t('common.delete') }}</button>
                    </div>
                 </div>
              </div>
@@ -516,6 +518,15 @@ const handleDelete = async (id: string) => {
                  </button>
                  <button @click="saveEdit('publish')" :disabled="isUploading" class="btn btn-primary px-8">
                     {{ isUploading ? t('common.uploading') : t('admin.publish') }}
+                 </button>
+             </template>
+
+             <template v-else-if="store.userPrompts.find(p => p.id === editForm.id && p.status === 'draft')">
+                 <button @click="saveEdit('save')" :disabled="isUploading" class="btn btn-secondary px-6">
+                    {{ t('common.save') }}
+                 </button>
+                 <button @click="saveEdit('review')" :disabled="isUploading" class="btn btn-primary px-8">
+                    {{ t('admin.submit_review') }}
                  </button>
              </template>
 

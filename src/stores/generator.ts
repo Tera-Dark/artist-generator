@@ -399,17 +399,22 @@ export const useGeneratorStore = defineStore('generator', () => {
             if (issue.state === 'closed') {
                  // Check labels for reason
                  const labels = issue.labels.map((l: any) => typeof l === 'string' ? l : l.name)
-                 if (labels.includes('approved')) data.status = 'approved'
-                 else if (labels.includes('rejected')) data.status = 'rejected'
-                 else data.status = 'closed'
+                 if (labels.includes('approved')) {
+                     data.status = 'approved'
+                     list.push(data)
+                 }
+                 else if (labels.includes('rejected')) {
+                     data.status = 'rejected'
+                     list.push(data)
+                 }
+                 // else: deleted/cancelled, do not add to list
             } else {
                  data.status = 'pending'
                  // Check if it is a draft
                  const labels = issue.labels.map((l: any) => typeof l === 'string' ? l : l.name)
                  if (labels.includes('draft')) data.status = 'draft'
+                 list.push(data)
             }
-
-            list.push(data)
           } catch (e) { }
         }
       })
@@ -451,7 +456,7 @@ export const useGeneratorStore = defineStore('generator', () => {
   }
 
   const moveToReview = async (id: string, data?: SharedPrompt) => {
-    const item = draftSubmissions.value.find(p => p.id === id)
+    const item = draftSubmissions.value.find(p => p.id === id) || userPrompts.value.find(p => p.id === id)
     if (!item || !item._issueNumber) return
 
     isLoading.value = true
@@ -460,8 +465,21 @@ export const useGeneratorStore = defineStore('generator', () => {
         await githubService.updateIssue(item._issueNumber, dataToUpdate, ['submission'])
         addToast('success', 'Moved', 'Moved to Pending Review', 2000)
 
+        // Update local state
         draftSubmissions.value = draftSubmissions.value.filter(p => p.id !== id)
-        pendingSubmissions.value.unshift(dataToUpdate)
+
+        // If it was in userPrompts, update it there too
+        const userIdx = userPrompts.value.findIndex(p => p.id === id)
+        if (userIdx !== -1) {
+             userPrompts.value[userIdx] = { ...dataToUpdate, status: 'pending' }
+        } else {
+             // Only add to pending if we are admin (implied by it being in draftSubmissions but not userPrompts?
+             // actually pendingSubmissions is admin view. userPrompts is user view.)
+             // If I am admin, I want to see it in pending.
+             if (isModerator.value) {
+                 pendingSubmissions.value.unshift({ ...dataToUpdate, status: 'pending' })
+             }
+        }
     } catch (e) {
         addToast('error', 'Error', 'Failed to move to review', 2000)
     } finally {
@@ -532,6 +550,27 @@ export const useGeneratorStore = defineStore('generator', () => {
       pendingSubmissions.value = pendingSubmissions.value.filter(p => p.id !== id)
     } catch (e) {
       addToast('error', 'Error', 'Failed to reject issue', 2000)
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const deleteUserSubmission = async (id: string) => {
+    const item = userPrompts.value.find(p => p.id === id)
+    if (!item || !item._issueNumber) return
+
+    isLoading.value = true
+    try {
+      await githubService.deleteIssue(item._issueNumber)
+
+      // Update local state
+      userPrompts.value = userPrompts.value.filter(p => p.id !== id)
+      pendingSubmissions.value = pendingSubmissions.value.filter(p => p.id !== id)
+
+      addToast('success', 'Deleted', 'Submission removed successfully', 2000)
+    } catch (e) {
+      console.error(e)
+      addToast('error', 'Error', 'Failed to delete submission', 2000)
     } finally {
       isLoading.value = false
     }
@@ -673,6 +712,7 @@ export const useGeneratorStore = defineStore('generator', () => {
     loadDraftSubmissions,
     loadRejectedSubmissions,
     loadUserSubmissions,
+    deleteUserSubmission,
     loadFavorites,
     toggleFavorite,
     isFavorite,
