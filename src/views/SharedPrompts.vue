@@ -115,7 +115,7 @@ async function processFile(file: File) {
         const url = await store.uploadToCatbox(file)
         form.value.image = url
         store.addToast('success', 'Uploaded', 'Image uploaded to Catbox')
-    } catch (e) {
+    } catch {
         // Error handled in store
     } finally {
         isUploading.value = false
@@ -249,7 +249,7 @@ async function handleSubmit() {
       const currentUsername = store.user?.login || ''
       form.value = { title: '', username: currentUsername, prompt: '', model: 'NAI 3', tags: [], description: '', image: '' }
       tagsInput.value = ''
-  } catch (e) {
+  } catch {
       // Handled in store
   }
 }

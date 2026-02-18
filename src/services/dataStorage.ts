@@ -45,7 +45,7 @@ export const dataStorage = {
                     try {
                         const res = await fetch(`${rawBase}${path}?t=${timestamp}`)
                         if (res.ok) return res
-                    } catch (e) {
+                    } catch {
                         console.warn(`[DataStorage] Raw fetch failed for ${path}, falling back`)
                     }
                 }

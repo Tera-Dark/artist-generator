@@ -36,3 +36,17 @@ export interface SharedPrompt {
   _chunkPath?: string // Internal for Chunked Storage
   _updatedAt?: number // Internal for Local Drafts
 }
+
+export interface ChunkIndex {
+  chunks: string[]
+  total: number
+  lastUpdated: number
+}
+
+export interface GithubUser {
+  login: string
+  id: number
+  avatar_url: string
+  html_url: string
+  name?: string | null
+}

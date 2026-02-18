@@ -32,7 +32,7 @@ const router = createRouter({
     {
       path: '/moderation',
       name: 'moderation',
-      component: () => import('../views/Moderation.vue')
+      component: Moderation
     },
     {
       path: '/settings',

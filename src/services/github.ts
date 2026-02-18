@@ -1,5 +1,6 @@
 import { Octokit } from '@octokit/rest'
 import { dataStorage } from '@/services/dataStorage'
+import type { SharedPrompt, ChunkIndex, GithubUser } from '@/types'
 
 export class GitHubService {
     private octokit: Octokit | null = null
@@ -26,10 +27,10 @@ export class GitHubService {
     }
 
     // Get Authenticated User
-    async getUser() {
+    async getUser(): Promise<GithubUser> {
         if (!this.octokit) throw new Error('Not logged in')
         const { data } = await this.octokit.users.getAuthenticated()
-        return data
+        return data as GithubUser
     }
 
     // User: Get My Submissions (Issues created by me)
@@ -65,7 +66,7 @@ export class GitHubService {
     }
 
     // Admin: Approve (Merge to Chunked Storage + Close Issue)
-    async approveSubmission(issueNumber: number, promptData: any) {
+    async approveSubmission(issueNumber: number, promptData: SharedPrompt) {
         if (!this.octokit) throw new Error('Admin not logged in')
 
         // Constants
@@ -78,11 +79,11 @@ export class GitHubService {
         while (attempt < MAX_RETRIES) {
             try {
                 // 1. Fetch Index
-                let indexData: any = { chunks: [], total: 0 }
+                let indexData: ChunkIndex = { chunks: [], total: 0, lastUpdated: 0 }
                 let indexSha: string | undefined
 
                 try {
-                    const indexRes = await this._fetchJson(INDEX_PATH)
+                    const indexRes = await this._fetchJson<ChunkIndex>(INDEX_PATH)
                     indexData = indexRes.content
                     indexSha = indexRes.sha
                 } catch (e: any) {
@@ -97,7 +98,7 @@ export class GitHubService {
                 // 2. Determine Target Chunk
                 let targetChunkPath = ''
                 let isNewChunk = false
-                let chunkContent: any[] = []
+                let chunkContent: SharedPrompt[] = []
                 let chunkSha: string | undefined
 
                 if (indexData.chunks.length === 0) {
@@ -109,7 +110,7 @@ export class GitHubService {
                     targetChunkPath = `${BASE_PATH}/${lastChunkName}`
 
                     try {
-                        const chunkRes = await this._fetchJson(targetChunkPath)
+                        const chunkRes = await this._fetchJson<SharedPrompt[]>(targetChunkPath)
                         chunkContent = chunkRes.content
                         chunkSha = chunkRes.sha
 
@@ -125,7 +126,7 @@ export class GitHubService {
                         // CRITICAL FIX: If we fail to read the existing chunk, DO NOT overwrite it.
                         // Instead, create a new chunk to ensure we don't lose existing data.
                         console.warn(`Failed to read existing chunk ${targetChunkPath}, creating new chunk to avoid data loss.`, e)
-                        
+
                         const nextIndex = indexData.chunks.length
                         targetChunkPath = `${BASE_PATH}/chunk_${nextIndex}.json`
                         isNewChunk = true
@@ -136,8 +137,8 @@ export class GitHubService {
 
                 // 3. Add Data to Chunk
                 // Ensure uniqueness in this chunk
-                if (!chunkContent.some((p: any) => p.id === promptData.id)) {
-                    chunkContent.unshift({ ...promptData, status: 'published', approved_at: Date.now() })
+                if (!chunkContent.some((p) => p.id === promptData.id)) {
+                    chunkContent.unshift({ ...promptData, status: 'published' as const })
                 }
 
                 // 4. Commit Chunk
@@ -248,7 +249,7 @@ export class GitHubService {
     }
 
     // Admin: Update Issue (Save Draft/Edit without Publishing)
-    async updateIssue(issueNumber: number, data: any, labels?: string[]) {
+    async updateIssue(issueNumber: number, data: SharedPrompt, labels?: string[]) {
         if (!this.octokit) throw new Error('Admin not logged in')
 
         const title = `[Submission] ${data.title}`
@@ -279,7 +280,7 @@ ${data.description}
     }
 
     // Public: Generate Issue Link
-    getSubmissionLink(data: any) {
+    getSubmissionLink(data: SharedPrompt) {
         // If image is local blob/data, clear it so user knows to provide a real link
         if (data.image && (data.image.startsWith('blob:') || data.image.startsWith('data:'))) {
             data.image = ''
@@ -304,7 +305,7 @@ ${data.description}
         return `https://github.com/${this.owner}/${this.repo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&labels=submission`
     }
     // Public: Create Submission Issue (In-App)
-    async submitIssue(data: any) {
+    async submitIssue(data: SharedPrompt) {
         if (!this.octokit) throw new Error('Not logged in')
 
         // If image is local blob/data, clear it so user knows to provide a real link
@@ -358,7 +359,7 @@ ${data.description}
                 repo: this.repo
             })
             return data.permissions?.push || false // Check for push access
-        } catch (e) {
+        } catch {
             return false
         }
     }
@@ -404,8 +405,8 @@ ${data.description}
         const path = chunkPath || 'public/data/prompts.json'
 
         // Fetch current
-        const currentData = await this._fetchJson(path)
-        const content = currentData.content.filter((p: any) => p.id !== id)
+        const currentData = await this._fetchJson<SharedPrompt[]>(path)
+        const content = currentData.content.filter((p) => p.id !== id)
 
         // Commit
         await this.octokit.repos.createOrUpdateFileContents({
@@ -420,15 +421,15 @@ ${data.description}
     }
 
     // Admin: Update Prompt (Edit)
-    async updatePrompt(prompt: any) {
+    async updatePrompt(prompt: SharedPrompt) {
         if (!this.octokit) throw new Error('Admin not logged in')
         const path = prompt._chunkPath || 'public/data/prompts.json'
 
         // Clean internal props
         const { _chunkPath, ...cleanPrompt } = prompt
 
-        const currentData = await this._fetchJson(path)
-        const content = currentData.content.map((p: any) => p.id === cleanPrompt.id ? { ...p, ...cleanPrompt, updated_at: Date.now() } : p)
+        const currentData = await this._fetchJson<SharedPrompt[]>(path)
+        const content = currentData.content.map((p) => p.id === cleanPrompt.id ? { ...p, ...cleanPrompt, updated_at: Date.now() } : p)
 
         await this.octokit.repos.createOrUpdateFileContents({
             owner: this.owner,
@@ -442,7 +443,7 @@ ${data.description}
     }
 
     // Helper: Fetch JSON with SHA
-    private async _fetchJson(path: string) {
+    private async _fetchJson<T>(path: string): Promise<{ sha: string; content: T }> {
         if (!this.octokit) throw new Error('Admin not logged in')
         const { data } = await this.octokit.repos.getContent({
             owner: this.owner,
@@ -455,7 +456,7 @@ ${data.description}
             const decoded = decodeURIComponent(escape(atob(data.content)))
             return {
                 sha: data.sha,
-                content: JSON.parse(decoded)
+                content: JSON.parse(decoded) as T
             }
         }
         throw new Error('File not found')

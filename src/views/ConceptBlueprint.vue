@@ -203,81 +203,134 @@
 
       <!-- 步骤 2：预选艺术家（可选） -->
       <section class="mt-12">
-        <h2 class="text-sm font-semibold tracking-wide text-neutral-500 dark:text-neutral-400">步骤 2：预选艺术家（可选）</h2>
-        <div ref="artistDropdownRef" class="mt-4 relative max-w-2xl border border-neutral-200 dark:border-neutral-800 rounded-xl p-4">
-          <label class="block text-sm text-neutral-600 dark:text-neutral-300">搜索艺术家（匹配主名与别名）</label>
-          <input
-            ref="artistInputRef"
-            v-model="artistQuery"
-            type="text"
-            class="mt-2 input-field focus:ring-neutral-900 dark:focus:ring-neutral-100 focus:border-neutral-900 dark:focus:border-neutral-100"
-            placeholder="输入关键字，最多显示10个匹配"
-            @keydown="onArtistKeydown"
-            @focus="dropdownOpen = true"
-            aria-autocomplete="list"
-            aria-controls="artist-suggestion-list"
-            :aria-expanded="suggestions.length > 0"
-          />
-          <div v-if="store.isLoading" class="mt-2 text-xs text-neutral-500 dark:text-neutral-400">画师库加载中…</div>
-          <p class="mt-2 text-xs text-muted">已添加：
-            <span v-if="preselectedNames.length === 0">无</span>
-            <span v-else class="inline-flex flex-wrap gap-2">
-              <span v-for="(n, i) in preselectedNames" :key="n + i" class="inline-flex items-center gap-2 px-2 py-1 rounded-full border border-neutral-300 dark:border-neutral-700 bg-white/50 dark:bg-neutral-900/50 text-xs shadow-sm">
-                {{ n }}
-                <button class="ml-1 text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100" @click="removePreselected(i)">×</button>
+        <h2 class="text-xl font-black tracking-wide text-neutral-900 dark:text-neutral-100 mb-8 border-b-4 border-primary-500 inline-block pb-2">步骤 2：预选艺术家（可选）</h2>
+
+        <div ref="artistDropdownRef" class="relative max-w-3xl">
+          <label class="block text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-4">搜索并添加艺术家</label>
+
+          <!-- 多选输入框容器 (Neo-Brutalist Style) -->
+          <div
+            class="min-h-[72px] p-3 flex flex-wrap items-center gap-3 bg-white dark:bg-neutral-900 border-2 border-neutral-900 dark:border-neutral-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] transition-all"
+            :class="[dropdownOpen ? 'translate-x-[2px] translate-y-[2px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]' : 'hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]']"
+            @click="focusInput"
+          >
+            <!-- 已选标签 (Chips: Hard Borders) -->
+            <transition-group name="list" appear>
+              <span
+                v-for="(n, i) in preselectedNames"
+                :key="n"
+                class="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-500 text-neutral-900 text-sm font-bold border-2 border-neutral-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] animate-in zoom-in-90 duration-200"
+              >
+                <span>{{ n }}</span>
+                <button
+                  class="p-0.5 hover:bg-neutral-900 hover:text-white transition-colors border border-transparent hover:border-white/20 rounded-sm"
+                  @click.stop="removePreselected(i)"
+                  tabindex="-1"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
               </span>
-            </span>
-          </p>
-          <div class="mt-2">
-            <button v-if="preselectedNames.length" class="btn btn-secondary text-xs px-2 py-1" @click="clearPreselected">清空预选</button>
+            </transition-group>
+
+            <!-- 输入框 -->
+            <input
+              ref="artistInputRef"
+              v-model="artistQuery"
+              type="text"
+              class="flex-1 min-w-[150px] bg-transparent border-none outline-none text-lg font-medium text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-500 h-10 px-2"
+              placeholder="输入名字查找..."
+              @keydown="onArtistKeydown"
+              @focus="dropdownOpen = true"
+              @blur="onInputBlur"
+              aria-autocomplete="list"
+              aria-controls="artist-suggestion-list"
+              :aria-expanded="suggestions.length > 0"
+            />
+
+            <!-- 图标区 -->
+            <div class="flex items-center gap-3 pr-1 border-l-2 border-neutral-200 dark:border-neutral-800 pl-3 ml-2">
+              <div v-if="store.isLoading" class="animate-spin text-neutral-900 dark:text-neutral-100">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+              </div>
+              <button
+                v-if="preselectedNames.length > 0"
+                @click.stop="clearPreselected"
+                class="group flex items-center justify-center p-2 hover:bg-red-500 hover:text-white border-2 border-transparent hover:border-neutral-900 transition-all rounded-md"
+                title="清空"
+              >
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              </button>
+            </div>
           </div>
 
-          <!-- 下拉联想列表 -->
-          <div v-if="suggestions.length && dropdownOpen" class="absolute left-0 right-0 top-full mt-2 z-30">
-            <ul
-              id="artist-suggestion-list"
-              role="listbox"
-              class="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-sm overflow-hidden"
-            >
-              <li
-                v-for="(s, i) in suggestions"
-                :key="s.name + '-' + i"
-                role="option"
-                :aria-selected="i === activeIndex"
-                @mouseenter="activeIndex = i"
-                @mouseleave="activeIndex = -1"
-                @click="!isPreselected(s.name) && selectSuggestion(s)"
-                class="px-4 py-2 border-t border-neutral-100 dark:border-neutral-800 first:border-t-0 transition-colors"
-                :class="[
-                  i === activeIndex ? 'bg-neutral-50 dark:bg-neutral-800' : 'bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800',
-                  isPreselected(s.name) ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
-                ]"
+          <!-- 下拉菜单 (Hard Borders & Shadows) -->
+          <transition
+            enter-active-class="transition duration-100 ease-out"
+            enter-from-class="transform scale-y-95 opacity-0"
+            enter-to-class="transform scale-y-100 opacity-100"
+            leave-active-class="transition duration-75 ease-in"
+            leave-from-class="transform scale-y-100 opacity-100"
+            leave-to-class="transform scale-y-95 opacity-0"
+          >
+            <div v-if="suggestions.length && dropdownOpen" class="absolute left-0 right-0 top-full mt-4 z-50">
+              <ul
+                id="artist-suggestion-list"
+                role="listbox"
+                class="border-2 border-neutral-900 dark:border-neutral-100 bg-white dark:bg-neutral-900 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] max-h-[400px] overflow-y-auto"
               >
-                <div class="flex items-center justify-between">
-                  <div class="font-medium text-neutral-900 dark:text-neutral-100 truncate" v-html="renderHighlightedName(s.name)"></div>
-                  <div class="text-xs text-neutral-500 dark:text-neutral-400">
-                    <span v-if="isPreselected(s.name)" class="mr-2 font-bold text-primary-600 dark:text-primary-400">已添加</span>
-                    别名 {{ s.other_names?.length || 0 }} · <span class="font-mono font-bold text-neutral-700 dark:text-neutral-300">作品 {{ s.post_count || 0 }}</span>
+                <li
+                  v-for="(s, i) in suggestions"
+                  :key="s.name + '-' + i"
+                  role="option"
+                  :aria-selected="i === activeIndex"
+                  @mouseenter="activeIndex = i"
+                  @click.stop="!isPreselected(s.name) && selectSuggestion(s)"
+                  class="group px-5 py-4 border-b-2 border-neutral-100 dark:border-neutral-800 last:border-0 cursor-pointer flex items-center justify-between transition-colors"
+                  :class="[
+                    i === activeIndex ? 'bg-primary-50 dark:bg-neutral-800' : 'bg-white dark:bg-neutral-900',
+                    isPreselected(s.name) ? 'opacity-50 grayscale cursor-not-allowed' : ''
+                  ]"
+                >
+                  <div class="flex-1 min-w-0 pr-4">
+                    <div class="flex items-center gap-3">
+                       <div class="font-black text-lg text-neutral-900 dark:text-neutral-100 truncate" v-html="renderHighlightedName(s.name)"></div>
+                       <span v-if="isPreselected(s.name)" class="text-xs font-bold px-2 py-0.5 border-2 border-neutral-900 bg-neutral-200 text-neutral-900">ADDED</span>
+                    </div>
+                    <div v-if="matchedAliases(s).length" class="mt-1 text-sm text-neutral-600 dark:text-neutral-400 truncate font-mono">
+                      ↳ <span v-html="renderHighlightedAliases(s)"></span>
+                    </div>
                   </div>
-                </div>
-                <div v-if="matchedAliases(s).length" class="mt-1 text-xs text-neutral-600 dark:text-neutral-300">
-                  别名匹配：<span v-html="renderHighlightedAliases(s)"></span>
-                </div>
-              </li>
-            </ul>
-          </div>
+                  <div class="text-right flex-shrink-0">
+                     <span class="block text-xs font-bold text-neutral-400 uppercase tracking-wider mb-1">WORKS</span>
+                     <span class="inline-block px-2 py-0.5 bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-sm font-bold font-mono">{{ s.post_count || 0 }}</span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </transition>
         </div>
-        <!-- 推荐：基于作品数前列（排除已预选） -->
-        <div class="mt-6 card p-4">
-          <div class="text-sm text-muted mb-2">推荐（依据作品数靠前）</div>
-          <div class="flex flex-wrap gap-2">
+
+        <!-- 推荐面板 (Bold Buttons) -->
+        <div class="mt-8">
+          <div class="flex items-center justify-between mb-4">
+             <div class="text-sm font-black text-neutral-900 dark:text-neutral-100 uppercase tracking-widest">热门推荐</div>
+             <button
+               @click="refreshRecommendations"
+               class="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-neutral-500 hover:text-primary-600"
+               title="换一批"
+             >
+               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+             </button>
+          </div>
+          <div class="flex flex-wrap gap-4">
             <button
               v-for="(r,i) in recommendedArtists"
               :key="r.name + '-' + i"
-              class="btn btn-secondary text-xs px-2 py-1"
+              class="group relative px-5 py-2.5 bg-white dark:bg-neutral-900 border-2 border-neutral-900 dark:border-neutral-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] hover:bg-primary-500 transition-all active:translate-y-0 active:shadow-none"
               @click="addPreselected(r.name)"
             >
-              {{ r.name }} <span class="ml-1 opacity-60 text-[10px] font-mono">{{ r.post_count }}</span>
+              <span class="font-bold text-neutral-900 dark:text-neutral-100 group-hover:text-neutral-900">{{ r.name }}</span>
+              <span class="absolute -top-3 -right-3 px-1.5 py-0.5 bg-neutral-900 text-white text-[10px] font-mono border border-white">{{ r.post_count }}</span>
             </button>
           </div>
         </div>
@@ -291,47 +344,38 @@
 <script setup lang="ts">
 import AppHeader from '@/components/common/AppHeader.vue'
 import { ref, computed, onMounted, watch, onBeforeUnmount } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { useGeneratorStore } from '@/stores/generator'
+import { useGeneratorLogic, type Artist } from '@/composables/useGeneratorLogic'
 
-type Artist = { name: string; other_names?: string[]; post_count?: number }
-type BracketStyle = 'paren' | 'curly' | 'square'
+const {
+  selectedMode,
+  enableCustomFormat,
+  artistCount,
+  finalResult,
+  postCountFilterMode,
+  postCountThreshold,
+  creativeBracketStyle,
+  creativeNestLevels,
+  standardWeightMin,
+  standardWeightMax,
+  naiWeightMin,
+  naiWeightMax,
+  customFormatString,
+  preselectedNames,
+  generate,
+  copyOutput,
+  incrementCount,
+  decrementCount,
+  isPreselected,
+  addPreselected,
+  removePreselected,
+  clearPreselected,
+  passesPostCountFilter
+} = useGeneratorLogic()
 
-const selectedMode = ref<'pure' | 'standard' | 'creative' | 'nai'>('standard')
-const enableCustomFormat = ref(false)
-const artistCount = ref(3)
-// 作品数筛选
-const postCountFilterMode = ref<'none' | 'gt' | 'lt'>('none')
-const postCountThreshold = ref<number>(0)
+const store = useGeneratorStore()
 
-// 创意模式：括号样式与嵌套层数
-const creativeBracketStyle = ref<BracketStyle>('paren')
-// 默认 0：表示随机（每个名字独立随机 1-5 层）
-const creativeNestLevels = ref<number>(0)
-
-// 权重滑条：标准与 NAI（下限/上限）
-const standardWeightMin = ref<number>(0.5)
-const standardWeightMax = ref<number>(1.5)
-const naiWeightMin = ref<number>(0.5)
-const naiWeightMax = ref<number>(1.5)
-const customFormatString = ref<string>('artist:{name}')
-
-// 作品数筛选判断函数
-function passesPostCountFilter(a: Artist) {
-  const mode = postCountFilterMode.value
-  const threshold = postCountThreshold.value || 0
-  const posts = a.post_count || 0
-  if (mode === 'gt') return posts > threshold
-  if (mode === 'lt') return posts < threshold
-  return true
-}
-// 数量控制（1-20 上限）
-function incrementCount() {
-  artistCount.value = Math.min(20, (artistCount.value || 1) + 1)
-}
-function decrementCount() {
-  artistCount.value = Math.max(1, (artistCount.value || 1) - 1)
-}
+// --- UI / Dropdown Logic (View Specific) ---
 
 const artistQuery = ref('')
 const artistInputRef = ref<HTMLInputElement | null>(null)
@@ -340,10 +384,6 @@ const dropdownOpen = ref(false)
 const artistDropdownRef = ref<HTMLElement | null>(null)
 const debouncedQuery = ref('')
 let debounceTimer: number | undefined
-
-const { t } = useI18n()
-const store = useGeneratorStore()
-const finalResult = ref('')
 
 // 文档外部点击关闭下拉（需在 setup 同步注册卸载钩子）
 const onDocClick = (e: MouseEvent) => {
@@ -409,11 +449,15 @@ function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 function highlightText(text: string, query: string): string {
-  const q = query.trim()
   const src = escapeHtml(text)
-  if (!q) return src
-  const re = new RegExp(escapeRegExp(q), 'ig')
-  return src.replace(re, (m) => `<mark class="bg-yellow-200 dark:bg-yellow-600 text-black dark:text-white px-0.5 rounded">${escapeHtml(m)}</mark>`)
+  const tokens = query.trim().split(/\s+/).filter(t => t.length > 0)
+  if (!tokens.length) return src
+
+  // Construct regex for all tokens: (token1|token2|...)
+  const pattern = tokens.map(escapeRegExp).join('|')
+  const re = new RegExp(`(${pattern})`, 'ig')
+
+  return src.replace(re, (m) => `<mark class="bg-primary-500 text-white px-0.5 rounded-sm">${escapeHtml(m)}</mark>`)
 }
 function renderHighlightedName(name: string): string {
   return highlightText(name, debouncedQuery.value)
@@ -421,24 +465,44 @@ function renderHighlightedName(name: string): string {
 function matchedAliases(a: { other_names?: string[] }): string[] {
   const q = debouncedQuery.value.trim().toLowerCase()
   if (!q) return []
-  return (a.other_names || []).filter(n => n.toLowerCase().includes(q))
+  const tokens = q.split(/\s+/).filter(t => t.length > 0)
+
+  return (a.other_names || []).filter(n => {
+    const lower = n.toLowerCase()
+    // Show alias if it matches ANY token (or maybe stricter? let's show if it contributes to the match)
+    // Actually, for "matched aliases" display, we usually want to show aliases that matched the query.
+    // If the main name didn't match some tokens, the alias MUST match them.
+    // For simplicity, we just show aliases that contain at least one of the tokens.
+    return tokens.some(t => lower.includes(t))
+  })
 }
 function renderHighlightedAliases(a: { other_names?: string[] }): string {
   return matchedAliases(a).map(n => highlightText(n, debouncedQuery.value)).join('、 ')
 }
 
-// 推荐：基于作品数前列（排除已预选）
-const recommendedArtists = computed(() => {
-  const all = store.artists.slice().sort((a, b) => (b.post_count || 0) - (a.post_count || 0))
-  const filtered = all.filter(a => !isPreselected(a.name))
-  return filtered.slice(0, 5)
-})
+// 推荐：随机选择 post_count > 100 的画师
+const recommendedArtists = ref<Artist[]>([])
 
-// 预选名单
-const preselectedNames = ref<string[]>([])
-function isPreselected(name: string) {
-  return preselectedNames.value.includes(name)
+function refreshRecommendations() {
+  const pool = store.artists.filter(a => (a.post_count || 0) > 100 && !isPreselected(a.name))
+  // Fisher-Yates shuffle or simple random pick
+  const result: Artist[] = []
+  const tempPool = [...pool]
+
+  for (let i = 0; i < 8 && tempPool.length > 0; i++) {
+    const idx = Math.floor(Math.random() * tempPool.length)
+    result.push(tempPool[idx])
+    tempPool.splice(idx, 1)
+  }
+  recommendedArtists.value = result
 }
+
+// 初始加载或 artists 变化时刷新
+watch(() => store.artists, () => {
+  if (store.artists.length && recommendedArtists.value.length === 0) {
+    refreshRecommendations()
+  }
+}, { immediate: true })
 
 function selectSuggestion(a: Artist) {
   addPreselected(a.name)
@@ -448,11 +512,32 @@ function selectSuggestion(a: Artist) {
   artistInputRef.value?.focus()
 }
 
+function focusInput() {
+  artistInputRef.value?.focus()
+}
+
+function onInputBlur() {
+  // 简短延迟以允许点击下拉项
+  setTimeout(() => {
+    dropdownOpen.value = false
+  }, 200)
+}
+
 function onArtistKeydown(e: KeyboardEvent) {
-  if (!['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(e.key)) return
+  if (!['ArrowDown', 'ArrowUp', 'Enter', 'Escape', 'Backspace'].includes(e.key)) return
+
+  // 处理退格删除标签
+  if (e.key === 'Backspace' && artistQuery.value === '') {
+    if (preselectedNames.value.length > 0) {
+      removePreselected(preselectedNames.value.length - 1)
+    }
+    return
+  }
+
   if (e.key === 'Escape') {
     artistQuery.value = ''
     activeIndex.value = -1
+    dropdownOpen.value = false
     return
   }
   const len = suggestions.value.length
@@ -466,183 +551,15 @@ function onArtistKeydown(e: KeyboardEvent) {
     activeIndex.value = (activeIndex.value - 1 + len) % len
   } else if (e.key === 'Enter') {
     e.preventDefault()
-    if (len === 0) return
+    if (len === 0) {
+        // 如果没有下拉项，且输入不为空，尝试直接作为新名字添加（可选功能，此处暂不开启，保持严格选择）
+        return
+    }
     const idx = activeIndex.value >= 0 ? activeIndex.value : 0
     const target = suggestions.value[idx]
     if (target && !isPreselected(target.name)) selectSuggestion(target)
   }
 }
-
-function addPreselected(name: string) {
-  if (isPreselected(name)) return
-  preselectedNames.value.push(name)
-}
-function removePreselected(idx: number) {
-  preselectedNames.value.splice(idx, 1)
-}
-function clearPreselected() {
-  preselectedNames.value = []
-}
-
-// 生成逻辑：按模式与数量，随机从库中补足
-
-function sampleRandomArtists(pool: Artist[], count: number, exclude: Set<string>) {
-  const available = pool.filter(a => !exclude.has(a.name) && passesPostCountFilter(a))
-  const picked: string[] = []
-  for (let i = 0; i < count && available.length > 0; i++) {
-    const idx = Math.floor(Math.random() * available.length)
-    const a = available.splice(idx, 1)[0]
-    picked.push(a.name)
-  }
-  return picked
-}
-
-// 根据样式包装名称并支持最多5层嵌套
-function wrapWithBrackets(name: string, style: BracketStyle, layers: number) {
-  let open = '(', close = ')'
-  if (style === 'curly') { open = '{'; close = '}' }
-  else if (style === 'square') { open = '['; close = ']'}
-  let s = name
-  for (let i = 0; i < layers; i++) s = `${open}${s}${close}`
-  return s
-}
-
-function formatOutput(names: string[]) {
-  let items: string[] = []
-
-  // 1. 生成基础串（根据模式）
-  if (selectedMode.value === 'pure') {
-    items = names
-  } else if (selectedMode.value === 'standard') {
-    // 标准模式：(名称:权重)
-    const clamp = (v: number) => Math.max(0, Math.min(2, v || 0))
-    let lo = clamp(standardWeightMin.value), hi = clamp(standardWeightMax.value)
-    if (lo > hi) [lo, hi] = [hi, lo]
-    const pick = () => Math.round((lo + Math.random() * (hi - lo)) * 10) / 10
-    items = names.map(n => `(${n}:${(lo === hi ? lo : pick()).toFixed(1)})`)
-  } else if (selectedMode.value === 'creative') {
-    // 创意模式：括号嵌套
-    const lv = creativeNestLevels.value
-    const pickRandom = () => Math.floor(Math.random() * 5) + 1
-    items = names.map(n => wrapWithBrackets(n, creativeBracketStyle.value, lv === 0 ? pickRandom() : Math.max(1, Math.min(5, lv || 1))))
-  } else if (selectedMode.value === 'nai') {
-    // NAI 模式： 权重::画师名 ::
-    const clamp = (v: number) => Math.max(0, Math.min(2, v || 0))
-    let lo = clamp(naiWeightMin.value), hi = clamp(naiWeightMax.value)
-    if (lo > hi) [lo, hi] = [hi, lo]
-    const pick = () => Math.round((lo + Math.random() * (hi - lo)) * 10) / 10
-    const weights = names.map(() => (lo === hi ? lo : pick()))
-    items = names.map((n, i) => `${Number(weights[i]).toFixed(1)}::${n} ::`)
-  } else {
-    items = names
-  }
-
-  // 2. 自定义格式包装（适配所有模式结果）
-  if (enableCustomFormat.value) {
-    const fmt = customFormatString.value || '{name}'
-    items = items.map(item => fmt.replace(/{name}/g, item))
-  }
-
-  return items.join(', ')
-}
-
-function generate() {
-  // 生成时按需加载 artists（若空则尝试加载）
-  if (!store.artists.length && !store.isLoading) {
-    // 注意：这里不await以保持按钮响应；store内部有并发去重
-    store.loadArtists()
-  }
-  const pool = store.artists.length ? store.artists : [
-    { name: 'test_artist_1', other_names: ['test1'], post_count: 100 },
-    { name: 'test_artist_2', other_names: ['test2'], post_count: 200 },
-    { name: 'test_artist_3', other_names: ['test3'], post_count: 300 },
-  ]
-  const target = Math.max(1, Math.min(20, artistCount.value))
-  const baseNames = preselectedNames.value.slice(0, target)
-  const exclude = new Set<string>(baseNames)
-  const need = target - baseNames.length
-  const randoms = need > 0 ? sampleRandomArtists(pool, need, exclude) : []
-  const allNames = [...baseNames, ...randoms]
-  finalResult.value = formatOutput(allNames)
-  // 成功提示
-  try { useGeneratorStore().addToast('success', '生成成功', '已生成画师串，可复制使用', 2000) } catch {}
-}
-
-function copyOutput() {
-  if (!store.user) {
-    store.addToast('info', t('auth.identity_check'), t('share.auth_required'))
-    return
-  }
-  if (!finalResult.value) return
-  navigator.clipboard?.writeText(finalResult.value)
-  try { useGeneratorStore().addToast('success', '已复制', '画师串已复制到剪贴板', 1800) } catch {}
-}
-
-// localStorage 持久化
-const LS_KEY = 'artist_string_generator_v1'
-
-function saveState() {
-  const payload = {
-    mode: selectedMode.value,
-    enableCustomFormat: enableCustomFormat.value,
-    count: artistCount.value,
-    postFilterMode: postCountFilterMode.value,
-    postFilterThreshold: postCountThreshold.value,
-    creativeBracketStyle: creativeBracketStyle.value,
-    creativeNestLevels: creativeNestLevels.value,
-    standardWeightMin: standardWeightMin.value,
-    standardWeightMax: standardWeightMax.value,
-    naiWeightMin: naiWeightMin.value,
-    naiWeightMax: naiWeightMax.value,
-    customFormatString: customFormatString.value,
-    preselected: preselectedNames.value,
-    final: finalResult.value,
-  }
-  try { localStorage.setItem(LS_KEY, JSON.stringify(payload)) } catch {}
-}
-
-function restoreState() {
-  try {
-    const raw = localStorage.getItem(LS_KEY)
-    if (!raw) return
-    const s = JSON.parse(raw)
-    if (s.mode) selectedMode.value = s.mode
-    if (typeof s.enableCustomFormat === 'boolean') enableCustomFormat.value = s.enableCustomFormat
-    if (typeof s.count === 'number') artistCount.value = s.count
-    if (s.postFilterMode) postCountFilterMode.value = s.postFilterMode
-    if (typeof s.postFilterThreshold === 'number') postCountThreshold.value = s.postFilterThreshold
-    if (s.creativeBracketStyle) creativeBracketStyle.value = s.creativeBracketStyle
-    if (typeof s.creativeNestLevels === 'number') creativeNestLevels.value = s.creativeNestLevels
-    if (typeof s.standardWeightMin === 'number') standardWeightMin.value = s.standardWeightMin
-    if (typeof s.standardWeightMax === 'number') standardWeightMax.value = s.standardWeightMax
-    if (typeof s.naiWeightMin === 'number') naiWeightMin.value = s.naiWeightMin
-    if (typeof s.naiWeightMax === 'number') naiWeightMax.value = s.naiWeightMax
-    if (typeof s.customFormatString === 'string') customFormatString.value = s.customFormatString
-    if (Array.isArray(s.preselected)) preselectedNames.value = s.preselected
-    if (typeof s.final === 'string') finalResult.value = s.final
-  } catch {}
-}
-
-restoreState()
-
-watch([
-  selectedMode,
-  enableCustomFormat,
-  artistCount,
-  postCountFilterMode,
-  postCountThreshold,
-  creativeBracketStyle,
-  creativeNestLevels,
-  standardWeightMin,
-  standardWeightMax,
-  naiWeightMin,
-  naiWeightMax,
-  customFormatString,
-  preselectedNames,
-  finalResult
-], saveState, { deep: true })
-
-// 旧导出/复制/组合逻辑已移除，保留精简的生成与复制（见上）
 </script>
 
 <style scoped>

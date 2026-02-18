@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import type { Artist, ToastMessage, SharedPrompt } from '@/types'
 import { githubService } from '@/services/github'
 import { authService } from '@/services/auth'
@@ -31,7 +31,7 @@ export const useGeneratorStore = defineStore('generator', () => {
 
   // Config
   const ARTISTS_TTL_MS = 15 * 60 * 1000
-  const PROMPTS_TTL_MS = 5 * 60 * 1000
+
   const USER_PROMPTS_KEY = 'ag_user_prompts_v1'
   const repoOwner = import.meta.env.VITE_REPO_OWNER || ''
   const repoName = import.meta.env.VITE_REPO_NAME || ''
@@ -52,9 +52,9 @@ export const useGeneratorStore = defineStore('generator', () => {
     // Check if we have a token saved
     const token = authService.getToken()
     if (token) {
-       const owner = import.meta.env.VITE_REPO_OWNER || ''
-       const repo = import.meta.env.VITE_REPO_NAME || ''
-       await verifyModerator(token, owner, repo)
+      const owner = import.meta.env.VITE_REPO_OWNER || ''
+      const repo = import.meta.env.VITE_REPO_NAME || ''
+      await verifyModerator(token, owner, repo)
     }
   }
 
@@ -71,7 +71,7 @@ export const useGeneratorStore = defineStore('generator', () => {
       } else {
         addToast('error', 'Auth Failed', 'Could not exchange code for token. Check Gatekeeper URL.')
       }
-    } catch (e) {
+    } catch {
       addToast('error', 'Auth Error', 'Authentication process failed')
     } finally {
       isLoading.value = false
@@ -164,9 +164,9 @@ export const useGeneratorStore = defineStore('generator', () => {
       console.log('[GeneratorStore] Loading prompts with config:', { base, owner, repo })
 
       sharedPrompts.value = await dataStorage.getAllPrompts(base, {
-          owner,
-          repo,
-          branch: 'main'
+        owner,
+        repo,
+        branch: 'main'
       })
     } catch (e) {
       console.warn('Failed to load prompts', e)
@@ -184,33 +184,33 @@ export const useGeneratorStore = defineStore('generator', () => {
   const submitIssue = async (data: any) => {
     isLoading.value = true
     try {
-        const payload = {
-            ...data,
-            created_at: data.created_at || Date.now()
-        }
-        const issue = await githubService.submitIssue(payload)
-        addToast('success', 'Submitted', 'Submission received! Check "My Submissions" in Profile.', 3000)
-        // Refresh user submissions immediately
-        loadUserSubmissions()
-        return issue
+      const payload = {
+        ...data,
+        created_at: data.created_at || Date.now()
+      }
+      const issue = await githubService.submitIssue(payload)
+      addToast('success', 'Submitted', 'Submission received! Check "My Submissions" in Profile.', 3000)
+      // Refresh user submissions immediately
+      loadUserSubmissions()
+      return issue
     } catch (e) {
-        addToast('error', 'Error', 'Failed to create issue', 3000)
-        throw e
+      addToast('error', 'Error', 'Failed to create issue', 3000)
+      throw e
     } finally {
-        isLoading.value = false
+      isLoading.value = false
     }
   }
 
   const uploadToCatbox = async (file: File) => {
     isLoading.value = true
     try {
-        const url = await catboxService.uploadFile(file)
-        return url
+      const url = await catboxService.uploadFile(file)
+      return url
     } catch (e) {
-        addToast('error', 'Upload Failed', 'Failed to upload to Catbox', 3000)
-        throw e
+      addToast('error', 'Upload Failed', 'Failed to upload to Catbox', 3000)
+      throw e
     } finally {
-        isLoading.value = false
+      isLoading.value = false
     }
   }
 
@@ -274,14 +274,14 @@ export const useGeneratorStore = defineStore('generator', () => {
             // Filter out drafts from pending list
             const isDraft = issue.labels.some((l: any) => (typeof l === 'string' ? l : l.name) === 'draft')
             if (!isDraft) {
-                data.status = 'pending'
-                list.push(data)
+              data.status = 'pending'
+              list.push(data)
             }
-          } catch (e) { console.warn('Failed to parse issue', issue.number) }
+          } catch { console.warn('Failed to parse issue', issue.number) }
         }
       })
       pendingSubmissions.value = list
-    } catch (e) {
+    } catch {
       addToast('error', 'Error', 'Failed to fetch pending issues', 2000)
     } finally {
       isLoading.value = false
@@ -303,7 +303,7 @@ export const useGeneratorStore = defineStore('generator', () => {
             data._issueNumber = issue.number
             data.username = issue.user?.login || 'Anonymous'
             list.push(data)
-          } catch (e) { console.warn('Failed to parse issue', issue.number) }
+          } catch { console.warn('Failed to parse issue', issue.number) }
         }
       })
       rejectedSubmissions.value = list
@@ -330,7 +330,7 @@ export const useGeneratorStore = defineStore('generator', () => {
             data._issueNumber = issue.number
             data.username = issue.user?.login || 'Anonymous'
             list.push(data)
-          } catch (e) { console.warn('Failed to parse issue', issue.number) }
+          } catch { console.warn('Failed to parse issue', issue.number) }
         }
       })
       draftSubmissions.value = list
@@ -359,25 +359,25 @@ export const useGeneratorStore = defineStore('generator', () => {
 
             // Determine status
             if (issue.state === 'closed') {
-                 // Check labels for reason
-                 const labels = issue.labels.map((l: any) => typeof l === 'string' ? l : l.name)
-                 if (labels.includes('approved')) {
-                     data.status = 'approved'
-                     list.push(data)
-                 }
-                 else if (labels.includes('rejected')) {
-                     data.status = 'rejected'
-                     list.push(data)
-                 }
-                 // else: deleted/cancelled, do not add to list
+              // Check labels for reason
+              const labels = issue.labels.map((l: any) => typeof l === 'string' ? l : l.name)
+              if (labels.includes('approved')) {
+                data.status = 'approved'
+                list.push(data)
+              }
+              else if (labels.includes('rejected')) {
+                data.status = 'rejected'
+                list.push(data)
+              }
+              // else: deleted/cancelled, do not add to list
             } else {
-                 data.status = 'pending'
-                 // Check if it is a draft
-                 const labels = issue.labels.map((l: any) => typeof l === 'string' ? l : l.name)
-                 if (labels.includes('draft')) data.status = 'draft'
-                 list.push(data)
+              data.status = 'pending'
+              // Check if it is a draft
+              const labels = issue.labels.map((l: any) => typeof l === 'string' ? l : l.name)
+              if (labels.includes('draft')) data.status = 'draft'
+              list.push(data)
             }
-          } catch (e) { }
+          } catch { }
         }
       })
       userPrompts.value = list
@@ -395,25 +395,25 @@ export const useGeneratorStore = defineStore('generator', () => {
 
     isLoading.value = true
     try {
-        // Update issue with 'draft' label
-        await githubService.updateIssue(item._issueNumber, data, ['draft'])
-        addToast('success', 'Saved', 'Saved as draft', 2000)
+      // Update issue with 'draft' label
+      await githubService.updateIssue(item._issueNumber, data, ['draft'])
+      addToast('success', 'Saved', 'Saved as draft', 2000)
 
-        // Remove from pending if there
-        pendingSubmissions.value = pendingSubmissions.value.filter(p => p.id !== id)
+      // Remove from pending if there
+      pendingSubmissions.value = pendingSubmissions.value.filter(p => p.id !== id)
 
-        // Update/Add to drafts
-        const existingIdx = draftSubmissions.value.findIndex(p => p.id === id)
-        if (existingIdx !== -1) {
-             draftSubmissions.value[existingIdx] = { ...item, ...data }
-        } else {
-             draftSubmissions.value.unshift({ ...item, ...data })
-        }
+      // Update/Add to drafts
+      const existingIdx = draftSubmissions.value.findIndex(p => p.id === id)
+      if (existingIdx !== -1) {
+        draftSubmissions.value[existingIdx] = { ...item, ...data }
+      } else {
+        draftSubmissions.value.unshift({ ...item, ...data })
+      }
 
-    } catch (e) {
-        addToast('error', 'Error', 'Failed to save draft', 2000)
+    } catch {
+      addToast('error', 'Error', 'Failed to save draft', 2000)
     } finally {
-        isLoading.value = false
+      isLoading.value = false
     }
   }
 
@@ -423,29 +423,29 @@ export const useGeneratorStore = defineStore('generator', () => {
 
     isLoading.value = true
     try {
-        const dataToUpdate = data ? { ...item, ...data } : item
-        await githubService.updateIssue(item._issueNumber, dataToUpdate, ['submission'])
-        addToast('success', 'Moved', 'Moved to Pending Review', 2000)
+      const dataToUpdate = data ? { ...item, ...data } : item
+      await githubService.updateIssue(item._issueNumber, dataToUpdate, ['submission'])
+      addToast('success', 'Moved', 'Moved to Pending Review', 2000)
 
-        // Update local state
-        draftSubmissions.value = draftSubmissions.value.filter(p => p.id !== id)
+      // Update local state
+      draftSubmissions.value = draftSubmissions.value.filter(p => p.id !== id)
 
-        // If it was in userPrompts, update it there too
-        const userIdx = userPrompts.value.findIndex(p => p.id === id)
-        if (userIdx !== -1) {
-             userPrompts.value[userIdx] = { ...dataToUpdate, status: 'pending' }
-        } else {
-             // Only add to pending if we are admin (implied by it being in draftSubmissions but not userPrompts?
-             // actually pendingSubmissions is admin view. userPrompts is user view.)
-             // If I am admin, I want to see it in pending.
-             if (isModerator.value) {
-                 pendingSubmissions.value.unshift({ ...dataToUpdate, status: 'pending' })
-             }
+      // If it was in userPrompts, update it there too
+      const userIdx = userPrompts.value.findIndex(p => p.id === id)
+      if (userIdx !== -1) {
+        userPrompts.value[userIdx] = { ...dataToUpdate, status: 'pending' }
+      } else {
+        // Only add to pending if we are admin (implied by it being in draftSubmissions but not userPrompts?
+        // actually pendingSubmissions is admin view. userPrompts is user view.)
+        // If I am admin, I want to see it in pending.
+        if (isModerator.value) {
+          pendingSubmissions.value.unshift({ ...dataToUpdate, status: 'pending' })
         }
-    } catch (e) {
-        addToast('error', 'Error', 'Failed to move to review', 2000)
+      }
+    } catch {
+      addToast('error', 'Error', 'Failed to move to review', 2000)
     } finally {
-        isLoading.value = false
+      isLoading.value = false
     }
   }
 
@@ -455,21 +455,21 @@ export const useGeneratorStore = defineStore('generator', () => {
 
     isLoading.value = true
     try {
-        await githubService.updateIssue(item._issueNumber, data)
-        // Update local state in both lists
-        const pendingIdx = pendingSubmissions.value.findIndex(p => p.id === id)
-        if (pendingIdx !== -1) {
-            pendingSubmissions.value[pendingIdx] = { ...pendingSubmissions.value[pendingIdx], ...data }
-        }
-        const userIdx = userPrompts.value.findIndex(p => p.id === id)
-        if (userIdx !== -1) {
-            userPrompts.value[userIdx] = { ...userPrompts.value[userIdx], ...data }
-        }
-        addToast('success', 'Updated', 'Issue updated successfully', 2000)
-    } catch (e) {
-        addToast('error', 'Error', 'Failed to update issue', 2000)
+      await githubService.updateIssue(item._issueNumber, data)
+      // Update local state in both lists
+      const pendingIdx = pendingSubmissions.value.findIndex(p => p.id === id)
+      if (pendingIdx !== -1) {
+        pendingSubmissions.value[pendingIdx] = { ...pendingSubmissions.value[pendingIdx], ...data }
+      }
+      const userIdx = userPrompts.value.findIndex(p => p.id === id)
+      if (userIdx !== -1) {
+        userPrompts.value[userIdx] = { ...userPrompts.value[userIdx], ...data }
+      }
+      addToast('success', 'Updated', 'Issue updated successfully', 2000)
+    } catch {
+      addToast('error', 'Error', 'Failed to update issue', 2000)
     } finally {
-        isLoading.value = false
+      isLoading.value = false
     }
   }
 
@@ -510,7 +510,7 @@ export const useGeneratorStore = defineStore('generator', () => {
       await githubService.rejectSubmission(item._issueNumber, reason)
       addToast('info', 'Rejected', 'Issue closed', 2000)
       pendingSubmissions.value = pendingSubmissions.value.filter(p => p.id !== id)
-    } catch (e) {
+    } catch {
       addToast('error', 'Error', 'Failed to reject issue', 2000)
     } finally {
       isLoading.value = false
@@ -544,7 +544,7 @@ export const useGeneratorStore = defineStore('generator', () => {
     try {
       const url = await githubService.uploadImage(file)
       return url
-    } catch (e) {
+    } catch {
       addToast('error', 'Upload Failed', 'Failed to upload image', 3000)
       return null
     } finally {
@@ -559,7 +559,7 @@ export const useGeneratorStore = defineStore('generator', () => {
       await githubService.deletePrompt(id, item?._chunkPath)
       sharedPrompts.value = sharedPrompts.value.filter(p => p.id !== id)
       addToast('success', 'Deleted', 'Prompt removed from repo', 2000)
-    } catch (e) {
+    } catch {
       addToast('error', 'Error', 'Failed to delete prompt', 2000)
     } finally {
       isLoading.value = false
@@ -574,7 +574,7 @@ export const useGeneratorStore = defineStore('generator', () => {
       const idx = sharedPrompts.value.findIndex(p => p.id === prompt.id)
       if (idx !== -1) sharedPrompts.value[idx] = prompt
       addToast('success', 'Updated', 'Prompt updated successfully', 2000)
-    } catch (e) {
+    } catch {
       addToast('error', 'Error', 'Failed to update prompt', 2000)
     } finally {
       isLoading.value = false
@@ -638,8 +638,18 @@ export const useGeneratorStore = defineStore('generator', () => {
   loadLocalDrafts()
 
   const searchArtists = (query: string): Artist[] => {
-    const q = query.toLowerCase()
-    return artists.value.filter(a => a.name.toLowerCase().includes(q))
+    const raw = query.trim().toLowerCase()
+    if (!raw) return []
+    const tokens = raw.split(/\s+/).filter(t => t.length > 0)
+
+    return artists.value.filter(a => {
+      const name = a.name.toLowerCase()
+      const aliases = (a.other_names || []).map(n => n.toLowerCase())
+      // Check if ALL tokens are present in either name OR any alias
+      return tokens.every(token =>
+        name.includes(token) || aliases.some(alias => alias.includes(token))
+      )
+    })
   }
 
   // Initialize Auth
