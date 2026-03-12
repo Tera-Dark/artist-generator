@@ -181,14 +181,6 @@ export function useGeneratorLogic() {
 
     function copyOutput() {
         if (!finalResult.value) return
-        // Note: Checking store.user might restrict general usage?
-        // Original code checked store.user for copy?
-        // "if (!store.user) ... auth_required"
-        // Let's keep that check if it was intended to force login for copying.
-        if (!store.user) {
-            store.addToast('info', t('auth.identity_check'), t('share.auth_required'))
-            return
-        }
 
         navigator.clipboard?.writeText(finalResult.value)
         try {

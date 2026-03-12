@@ -7,10 +7,10 @@
     <section class="section section-spacing fade-in-up">
       <div class="container-responsive">
         <div class="max-w-4xl">
-          <h1 class="text-6xl md:text-8xl font-black tracking-tighter leading-none mb-10">更简洁、直观的<br>画师串生成体验</h1>
-          <p class="mt-8 text-neutral-500 text-xl md:text-2xl leading-relaxed max-w-2xl">以现代极简设计重构交互。更少的装饰、更清晰的层级、更舒适的留白，聚焦你真正需要的功能。</p>
-          <div class="mt-12 flex items-center gap-6">
-            <router-link to="/concept" class="btn btn-primary text-lg px-10 py-5">
+          <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight leading-tight mb-8 text-neutral-900 dark:text-white">更优雅、直观的<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-primary-300">画师串生成体验</span></h1>
+          <p class="mt-6 text-neutral-500 dark:text-neutral-400 text-xl leading-relaxed max-w-2xl">以现代极简玻璃态设计重构交互。更少的装饰、更柔和的层级、更舒适的视觉体验，聚焦你真正需要的功能。</p>
+          <div class="mt-10 flex items-center gap-4">
+            <router-link to="/concept" class="btn btn-primary text-base px-8 py-4">
               开始使用
               <svg class="w-6 h-6 ml-2" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3l7 7-7 7v-4H3V7h7V3z"/></svg>
             </router-link>
@@ -25,10 +25,10 @@
       <div class="container-responsive">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
           <!-- 快速入口：工作区 -->
-          <router-link to="/concept" class="preset-card group">
+          <router-link to="/concept" class="preset-card group border border-neutral-200/60 dark:border-neutral-800/60 bg-white/50 dark:bg-neutral-900/50 hover:bg-white dark:hover:bg-neutral-900 transition-all">
             <div class="flex flex-col items-center gap-6">
-              <div class="w-20 h-20 bg-primary-500 border-2 border-neutral-900 flex items-center justify-center text-4xl text-neutral-900 font-bold shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] group-hover:scale-110 transition-transform">
-                <Palette class="w-10 h-10" stroke-width="2" />
+              <div class="w-16 h-16 bg-gradient-to-br from-primary-400 to-primary-600 rounded-2xl flex items-center justify-center text-white shadow-soft group-hover:scale-110 transition-transform">
+                <Palette class="w-8 h-8" stroke-width="2" />
               </div>
               <div>
                 <h3 class="text-2xl font-black uppercase tracking-wide">进入工作区</h3>
@@ -38,10 +38,10 @@
           </router-link>
 
           <!-- 快速入口：画师库 -->
-          <router-link to="/library" class="preset-card group">
+          <router-link to="/library" class="preset-card group border border-neutral-200/60 dark:border-neutral-800/60 bg-white/50 dark:bg-neutral-900/50 hover:bg-white dark:hover:bg-neutral-900 transition-all">
             <div class="flex flex-col items-center gap-6">
-              <div class="w-20 h-20 bg-primary-500 border-2 border-neutral-900 flex items-center justify-center text-4xl text-neutral-900 font-bold shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] group-hover:scale-110 transition-transform">
-                <Library class="w-10 h-10" stroke-width="2" />
+              <div class="w-16 h-16 bg-gradient-to-br from-primary-400 to-primary-600 rounded-2xl flex items-center justify-center text-white shadow-soft group-hover:scale-110 transition-transform">
+                <Library class="w-8 h-8" stroke-width="2" />
               </div>
               <div>
                 <h3 class="text-2xl font-black uppercase tracking-wide">浏览画师库</h3>
@@ -83,27 +83,27 @@
     <!-- 特性（简化成 3 卡片） -->
     <section id="features" class="section pb-32">
       <div class="container-responsive">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
-          <div class="preset-card text-left">
-            <div class="w-16 h-16 bg-primary-500 border-2 border-neutral-900 mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center">
-              <Layers class="w-8 h-8 text-neutral-900" stroke-width="2" />
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div class="card p-8 text-left hover:-translate-y-1 transition-transform bg-white/60 dark:bg-neutral-900/60 border border-neutral-200/50 dark:border-neutral-800/50 backdrop-blur-sm">
+            <div class="w-14 h-14 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-xl mb-6 flex items-center justify-center">
+              <Layers class="w-7 h-7" stroke-width="2" />
             </div>
-            <h3 class="text-xl font-black uppercase tracking-wide">极简层级</h3>
-            <p class="mt-4 text-neutral-600 dark:text-neutral-400 leading-relaxed">去除多余装饰与渐变，用边距和排版建立清晰结构。</p>
+            <h3 class="text-lg font-bold tracking-wide">柔和层级</h3>
+            <p class="mt-3 text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">去除多余硬边装饰，用柔和阴影和极简留白建立清晰舒适的结构。</p>
           </div>
-          <div class="preset-card text-left">
-            <div class="w-16 h-16 bg-primary-500 border-2 border-neutral-900 mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center">
-              <Maximize class="w-8 h-8 text-neutral-900" stroke-width="2" />
+          <div class="card p-8 text-left hover:-translate-y-1 transition-transform bg-white/60 dark:bg-neutral-900/60 border border-neutral-200/50 dark:border-neutral-800/50 backdrop-blur-sm">
+            <div class="w-14 h-14 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-xl mb-6 flex items-center justify-center">
+              <Maximize class="w-7 h-7" stroke-width="2" />
             </div>
-            <h3 class="text-xl font-black uppercase tracking-wide">舒适留白</h3>
-            <p class="mt-4 text-neutral-600 dark:text-neutral-400 leading-relaxed">更大的内外边距，降低信息密度，提高理解效率。</p>
+            <h3 class="text-lg font-bold tracking-wide">舒适空间</h3>
+            <p class="mt-3 text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">科学计算的内外边距，降低视觉噪音，让注意力聚焦于内容本身。</p>
           </div>
-          <div class="preset-card text-left">
-            <div class="w-16 h-16 bg-primary-500 border-2 border-neutral-900 mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center">
-              <Droplet class="w-8 h-8 text-neutral-900" stroke-width="2" />
+          <div class="card p-8 text-left hover:-translate-y-1 transition-transform bg-white/60 dark:bg-neutral-900/60 border border-neutral-200/50 dark:border-neutral-800/50 backdrop-blur-sm">
+            <div class="w-14 h-14 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-xl mb-6 flex items-center justify-center">
+              <Droplet class="w-7 h-7" stroke-width="2" />
             </div>
-            <h3 class="text-xl font-black uppercase tracking-wide">一致配色</h3>
-            <p class="mt-4 text-neutral-600 dark:text-neutral-400 leading-relaxed">以中性灰为基底，仅在关键操作使用轻微点睛色。</p>
+            <h3 class="text-lg font-bold tracking-wide">流光拟物</h3>
+            <p class="mt-3 text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">引入高贵轻盈的玻璃质感，配合现代柔和色彩系，赏心悦目。</p>
           </div>
         </div>
       </div>

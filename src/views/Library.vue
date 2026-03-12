@@ -244,8 +244,8 @@
         </div>
 
         <div v-else class="p-4">
-          <div v-if="isLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div v-for="n in 6" :key="n" class="card p-4 animate-pulse">
+          <div v-if="isLoading" class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4">
+            <div v-for="n in 6" :key="n" class="card p-4 animate-pulse break-inside-avoid mb-4">
               <div class="h-4 w-24 bg-neutral-200 dark:bg-neutral-800 rounded mb-2"></div>
               <div class="h-3 w-40 bg-neutral-200 dark:bg-neutral-800 rounded mb-3"></div>
               <div class="h-3 w-16 bg-neutral-200 dark:bg-neutral-800 rounded"></div>
@@ -253,45 +253,94 @@
           </div>
           <div
             v-else-if="filteredSorted.length > 0"
-            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+            class="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4"
           >
-            <div v-for="(a, i) in paged" :key="a.name + '-' + i" class="card p-5 hover-lift flex flex-col h-full relative group">
-              <div class="flex items-start justify-between gap-4 mb-4">
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-2">
-                     <h3 class="font-black text-lg text-neutral-900 dark:text-neutral-100 truncate" :title="a.name">{{ a.name }}</h3>
-                     <button
-                      class="text-neutral-400 hover:text-yellow-500 transition-colors"
-                      @click.stop="toggleFavorite(a.name)"
-                      :aria-pressed="isFavorite(a.name)"
-                      title="收藏/取消"
-                    >
-                      <svg v-if="isFavorite(a.name)" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 fill-current text-yellow-500" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                      <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
-                    </button>
-                  </div>
-                  <div class="text-xs text-muted mt-2 line-clamp-2 min-h-[2.5em]">
-                    <span v-if="a.other_names && a.other_names.length" :title="a.other_names.join(', ')">{{
-                      formatOtherNames(a.other_names)
-                    }}</span>
-                    <span v-else class="italic opacity-50">暂无别名</span>
-                  </div>
+            <div
+              v-for="(a, i) in paged"
+              :key="a.name + '-' + i"
+              v-intersect="() => loadPreview(a.name)"
+              class="card p-0 hover-lift flex flex-col relative group overflow-hidden break-inside-avoid mb-4"
+            >
+              <!-- 预览图区域（懒加载自 Danbooru） -->
+              <div class="relative w-full min-h-[9rem] bg-neutral-100 dark:bg-neutral-800 overflow-hidden flex-shrink-0 flex flex-col">
+                <img
+                  v-if="previews[a.name]"
+                  :src="previews[a.name]"
+                  class="w-full h-auto max-h-[32rem] object-cover transition-transform duration-300 group-hover:scale-105 flex-shrink-0"
+                  :alt="a.name"
+                  loading="lazy"
+                  @error="previews[a.name] = ''"
+                />
+                <div v-else-if="loadingPreviews.has(a.name)" class="w-full min-h-[9rem] flex flex-1 items-center justify-center">
+                  <div class="w-6 h-6 rounded-full border-2 border-primary-300 border-t-primary-600 animate-spin"></div>
+                </div>
+                <div v-else class="w-full min-h-[9rem] flex flex-1 flex-col items-center justify-center text-neutral-300 dark:text-neutral-700 gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  <button
+                    class="text-[10px] text-primary-500 hover:text-primary-700 transition-colors font-medium"
+                    @click.stop="loadPreview(a.name)"
+                  >加载预览</button>
                 </div>
 
-                <!-- Redesigned Post Count Badge -->
-                <div class="flex-shrink-0 flex flex-col items-center justify-center bg-primary-500 border-2 border-neutral-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] w-14 h-14" title="收录作品数">
-                  <span class="text-[10px] font-bold uppercase leading-none tracking-tighter mb-0.5">POSTS</span>
-                  <span class="font-mono text-xl font-black leading-none">{{ a.post_count ?? 0 }}</span>
-                </div>
+                <!-- 悬浮时显示 Danbooru 跳转 -->
+                <a
+                  :href="a.danbooru_url || getDanbooruUrl(a.name)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-t from-neutral-900/70 to-transparent flex items-end justify-end p-2"
+                  @click.stop
+                >
+                  <span class="text-white text-[10px] font-semibold bg-black/50 px-2 py-1 rounded-lg backdrop-blur-sm">Danbooru ↗</span>
+                </a>
               </div>
 
-              <div class="mt-auto pt-4 flex items-center gap-3">
-                <button class="btn btn-secondary text-xs flex-1 py-2" @click="copyName(a.name)">
-                  复制名称
-                </button>
-                <button class="btn btn-secondary text-xs flex-1 py-2" @click="copySnippet(a)">
-                  复制片段
-                </button>
+              <!-- 卡片内容 -->
+              <div class="p-4 flex flex-col flex-1">
+                <div class="flex items-start justify-between gap-3 mb-2">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2">
+                       <h3 class="font-bold text-base text-neutral-900 dark:text-neutral-100 truncate" :title="a.name">{{ a.name }}</h3>
+                       <button
+                        class="text-neutral-400 hover:text-yellow-500 transition-colors flex-shrink-0"
+                        @click.stop="toggleFavorite(a.name)"
+                        :aria-pressed="isFavorite(a.name)"
+                        title="收藏/取消"
+                      >
+                        <svg v-if="isFavorite(a.name)" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 fill-current text-yellow-500" viewBox="0 0 20 20" fill="currentColor"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                        <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+                      </button>
+                    </div>
+                    <div class="text-xs text-muted mt-1 line-clamp-2 min-h-[2.5em]">
+                      <span v-if="a.other_names && a.other_names.length" :title="a.other_names.join(', ')">{{ formatOtherNames(a.other_names) }}</span>
+                      <span v-else class="italic opacity-50">暂无别名</span>
+                    </div>
+                  </div>
+
+                  <!-- Post Count Badge -->
+                  <div class="flex-shrink-0 flex flex-col items-center justify-center bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-xl border border-primary-200 dark:border-primary-800 w-12 h-12 shadow-sm" title="收录作品数">
+                    <span class="text-[9px] font-bold uppercase leading-none tracking-tighter mb-0.5">POSTS</span>
+                    <span class="font-mono text-sm font-black leading-none">{{ a.post_count > 9999 ? (a.post_count / 1000).toFixed(1) + 'k' : a.post_count }}</span>
+                  </div>
+                </div>
+
+                <div class="mt-auto pt-3 flex items-center gap-2">
+                  <button class="btn btn-secondary text-xs flex-1 py-1.5" @click="copyName(a.name)">
+                    复制名称
+                  </button>
+                  <button class="btn btn-secondary text-xs flex-1 py-1.5" @click="copySnippet(a)">
+                    复制片段
+                  </button>
+                  <a
+                    :href="a.danbooru_url || getDanbooruUrl(a.name)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn btn-secondary text-xs px-2.5 py-1.5 flex-shrink-0"
+                    title="在 Danbooru 查看"
+                    @click.stop
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                  </a>
+                </div>
               </div>
             </div>
           </div>
@@ -337,7 +386,7 @@
 
 <script setup lang="ts">
 import AppHeader from '@/components/common/AppHeader.vue'
-import { onMounted, ref, computed, watch } from 'vue'
+import { onMounted, ref, computed, watch, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useGeneratorStore } from '@/stores/generator'
 
@@ -373,6 +422,103 @@ const viewMode = ref<'list' | 'grid'>('list')
 const postMin = ref(0)
 const postMax = ref(0)
 const aliasMin = ref(0)
+
+// ---- Danbooru 预览图逻辑 ----
+const previews = reactive<Record<string, string>>({}) // name -> preview image URL
+const loadingPreviews = reactive(new Set<string>())   // 正在加载中的 name
+const previewErrors = reactive(new Set<string>())     // 加载失败的 name
+
+/** 构造 Danbooru 画师帖子搜索 URL（无需 API） */
+function getDanbooruUrl(name: string): string {
+  return `https://danbooru.donmai.us/posts?tags=${encodeURIComponent(name)}`
+}
+
+// 自动加载视图内元素的指令
+const vIntersect = {
+  mounted(el: HTMLElement, binding: any) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            binding.value()
+            // 触发一次后如果想停止观察，可以：
+            // observer.unobserve(el)
+            // 但因为 paged 会刷新，组件复用，所以先不 unobserve，内部有 loadingPreviews/previews 过滤
+          }
+        })
+      },
+      {
+        rootMargin: '100px', // 提前 100px 加载
+      }
+    )
+    observer.observe(el)
+    ;(el as any)._intersectObserver = observer
+  },
+  unmounted(el: any) {
+    if ((el as any)._intersectObserver) {
+      (el as any)._intersectObserver.disconnect()
+    }
+  }
+}
+
+let isQueueProcessing = false
+const previewQueue: string[] = []
+const RATE_LIMIT_MS = 600 // Danbooru limits, ~2 per second for unauth
+
+async function processQueue() {
+  if (isQueueProcessing || previewQueue.length === 0) return
+  isQueueProcessing = true
+
+  while (previewQueue.length > 0) {
+    const name = previewQueue.shift()
+    if (name) {
+      await fetchPreviewInternal(name)
+      if (previewQueue.length > 0) {
+        await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_MS))
+      }
+    }
+  }
+
+  isQueueProcessing = false
+}
+
+/** 从 Danbooru API 加载画师最新作品的预览图 */
+function loadPreview(name: string) {
+  if (previews[name] || loadingPreviews.has(name) || previewErrors.has(name)) return
+  if (!previewQueue.includes(name)) {
+    previewQueue.push(name)
+    processQueue()
+  }
+}
+
+async function fetchPreviewInternal(name: string) {
+  if (previews[name] || loadingPreviews.has(name) || previewErrors.has(name)) return
+  loadingPreviews.add(name)
+  try {
+    // Danbooru posts API：按 name 标签搜索，取最新1个，评分安全
+    const url = `https://danbooru.donmai.us/posts.json?tags=${encodeURIComponent(name)}&limit=1&order=id_desc`
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const data = await res.json()
+    if (Array.isArray(data) && data.length > 0) {
+      // 优先使用 preview，降级用 small
+      const post = data[0]
+      const imgUrl = post.preview_file_url || post.large_file_url || post.file_url || ''
+      if (imgUrl) {
+        previews[name] = imgUrl
+      } else {
+        previewErrors.add(name)
+      }
+    } else {
+      previewErrors.add(name)
+    }
+  } catch {
+    previewErrors.add(name)
+  } finally {
+    loadingPreviews.delete(name)
+  }
+}
+
 const loadedAtText = computed(() =>
   store.artistsLoadedAt ? new Date(store.artistsLoadedAt).toLocaleString() : '—',
 )

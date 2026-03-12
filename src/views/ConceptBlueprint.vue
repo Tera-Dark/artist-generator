@@ -4,338 +4,208 @@
     <AppHeader sectionLabel="工作区" />
 
     <!-- 主体：两步流程 -->
-    <main class="section section-spacing fade-in-up">
-      <div class="container-responsive">
-        <section class="max-w-4xl mx-auto text-center mb-16">
-          <h1 class="text-5xl md:text-6xl font-black tracking-tighter uppercase mb-6">画师串生成器</h1>
-          <p class="text-xl text-neutral-500 max-w-2xl mx-auto">选择模式，设定数量，一键生成。支持多种权重格式与组合方式。</p>
-        </section>
+    <main class="section py-6 fade-in-up">
+      <div class="container-responsive max-w-7xl mx-auto">
+        
+        <!-- 页面网格：左控制面，右结果固定 -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          <!-- 左侧：总控台 -->
+          <div class="lg:col-span-8 flex flex-col gap-6">
 
-        <!-- 快速输出（置顶可见） -->
-        <section class="mb-20 fade-in">
-          <div class="flex items-center justify-between mb-6">
-            <h2 class="text-2xl font-bold uppercase tracking-wide">输出结果</h2>
-            <div class="text-sm text-neutral-500">预览结果将显示在这里</div>
+            <!-- 核心配置区 -->
+            <section class="card p-5">
+              <div class="flex items-center justify-between border-b-2 border-primary-500 pb-2 mb-4">
+                <h2 class="text-base font-black tracking-wide uppercase">核心配置</h2>
+              </div>
+              
+              <!-- 模式选择 (Compact Tabs) -->
+              <div class="mb-4">
+                <label class="block text-xs font-bold text-neutral-500 mb-2 uppercase tracking-wide">生成模式</label>
+                <div class="flex flex-wrap gap-2">
+                  <button v-for="mode in [{id:'pure', label:'纯净模式'}, {id:'standard', label:'标准模式'}, {id:'creative', label:'括号模式'}, {id:'nai', label:'NAI模式'}]" 
+                    :key="mode.id" 
+                    @click="selectedMode = mode.id as import('@/composables/useGeneratorLogic').GeneratorMode"
+                    :class="['px-3 py-1.5 text-sm font-semibold rounded-lg border transition-all duration-200', selectedMode === mode.id ? 'bg-primary-500 border-primary-500 text-white shadow-soft' : 'bg-white border-neutral-200 text-neutral-600 hover:border-primary-300 dark:bg-neutral-900 dark:border-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-600']"
+                  >
+                    {{ mode.label }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- 数量与快速过滤 (Compact Row) -->
+              <div class="flex flex-wrap items-center gap-6 bg-neutral-50 dark:bg-neutral-900/50 p-3 border border-neutral-200 dark:border-neutral-800 rounded">
+                <div class="flex items-center gap-3">
+                  <label class="text-xs font-bold text-neutral-500 uppercase">生成数量</label>
+                  <div class="flex items-center">
+                    <button @click="decrementCount" class="w-6 h-6 flex items-center justify-center bg-white border border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-900 dark:text-white pb-0.5 text-lg leading-none select-none font-bold" aria-label="减少">−</button>
+                    <input type="number" v-model.number="artistCount" min="1" max="20" class="w-12 h-6 text-center text-sm font-bold border-y border-x-0 border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 focus:outline-none focus:ring-0" />
+                    <button @click="incrementCount" class="w-6 h-6 flex items-center justify-center bg-white border border-neutral-300 dark:border-neutral-700 dark:bg-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-neutral-900 dark:text-white pb-0.5 text-lg leading-none select-none font-bold" aria-label="增加">+</button>
+                  </div>
+                </div>
+
+                <div class="w-px h-6 bg-neutral-300 dark:bg-neutral-700"></div>
+
+                <div class="flex items-center gap-3 flex-1">
+                  <label class="text-xs font-bold text-neutral-500 uppercase whitespace-nowrap">作品数过滤</label>
+                  <select v-model="postCountFilterMode" class="input-field py-1 px-2 h-7 text-xs flex-shrink-0 w-20">
+                    <option value="none">不限</option>
+                    <option value="gt">大于</option>
+                    <option value="lt">小于</option>
+                  </select>
+                  <input v-if="postCountFilterMode !== 'none'" v-model.number="postCountThreshold" type="number" min="0" class="input-field py-1 px-2 h-7 text-xs w-20" placeholder="阈值" />
+                </div>
+              </div>
+
+              <!-- 模式配置 (Conditional, Compact) -->
+              <div class="mt-4 border-l-2 border-primary-500 pl-3">
+                <div v-if="selectedMode === 'pure'" class="text-xs text-neutral-500">此模式只输出画师名，无任何权重符号。</div>
+                <div v-if="selectedMode === 'creative'" class="flex items-center gap-6">
+                  <div class="flex items-center gap-2">
+                    <label class="text-xs font-bold text-neutral-600 dark:text-neutral-400">括号</label>
+                    <select v-model="creativeBracketStyle" class="input-field py-1 px-2 h-7 text-xs">
+                      <option value="paren">圆() ×1.1</option>
+                      <option value="curly">花{} ×1.05</option>
+                      <option value="square">方[] ×0.9</option>
+                    </select>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <label class="text-xs font-bold text-neutral-600 dark:text-neutral-400">随机叠加(0-5)</label>
+                    <input v-model.number="creativeNestLevels" type="number" min="0" max="5" class="input-field py-1 px-2 h-7 text-xs w-16" />
+                  </div>
+                </div>
+                <div v-if="selectedMode === 'standard'" class="flex items-center gap-4">
+                  <label class="text-xs font-bold text-neutral-600 dark:text-neutral-400">随机权重</label>
+                  <input v-model.number="standardWeightMin" type="number" min="0" max="2" step="0.1" class="input-field py-1 px-2 h-7 text-xs w-16 text-center" />
+                  <span class="text-neutral-400">-</span>
+                  <input v-model.number="standardWeightMax" type="number" min="0" max="2" step="0.1" class="input-field py-1 px-2 h-7 text-xs w-16 text-center" />
+                </div>
+                <div v-if="selectedMode === 'nai'" class="flex items-center gap-4">
+                  <label class="text-xs font-bold text-neutral-600 dark:text-neutral-400">NAI随机权重</label>
+                  <input v-model.number="naiWeightMin" type="number" min="0" max="2" step="0.1" class="input-field py-1 px-2 h-7 text-xs w-16 text-center" />
+                  <span class="text-neutral-400">-</span>
+                  <input v-model.number="naiWeightMax" type="number" min="0" max="2" step="0.1" class="input-field py-1 px-2 h-7 text-xs w-16 text-center" />
+                </div>
+              </div>
+
+              <!-- 自定义格式包装 -->
+              <div class="mt-4 flex items-center gap-3">
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox" v-model="enableCustomFormat" class="w-4 h-4 accent-primary-500" />
+                  <span class="text-xs font-bold text-neutral-900 dark:text-neutral-100">格式包装</span>
+                </label>
+                <div v-if="enableCustomFormat" class="flex-1 flex gap-2 fade-in">
+                  <input v-model="customFormatString" type="text" class="input-field flex-1 h-7 py-1 px-2 text-xs font-mono" placeholder="by {name}" />
+                  <button @click="customFormatString='by {name}'" class="btn btn-secondary py-1 px-2 h-7 text-xs">by</button>
+                  <button @click="customFormatString='artist:{name}'" class="btn btn-secondary py-1 px-2 h-7 text-xs">artist:</button>
+                </div>
+              </div>
+            </section>
+
+            <!-- 定制预选区 -->
+            <section class="card p-5">
+              <div class="flex items-center justify-between border-b-2 border-primary-500 pb-2 mb-4">
+                 <h2 class="text-base font-black tracking-wide uppercase">搜索与预选</h2>
+                 <span class="text-[10px] text-neutral-400">将包含在每次生成中</span>
+              </div>
+              
+              <div ref="artistDropdownRef" class="relative">
+                <!-- 输入与标签框 -->
+                <div class="min-h-[40px] p-2 flex flex-wrap items-center gap-2 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl shadow-soft hover:shadow-soft-lg transition-shadow cursor-text" @click="focusInput">
+                  
+                  <transition-group name="list" appear>
+                    <span v-for="(n, i) in preselectedNames" :key="n" class="inline-flex items-center gap-1 pl-2 pr-1 py-1 bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-md text-xs font-semibold">
+                      <span>{{ n }}</span>
+                      <button class="p-0.5 rounded-sm hover:bg-primary-200 dark:hover:bg-primary-800 transition-colors" @click.stop="removePreselected(i)" tabindex="-1"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                    </span>
+                  </transition-group>
+
+                  <input ref="artistInputRef" v-model="artistQuery" type="text" class="flex-1 min-w-[120px] bg-transparent border-none outline-none text-sm text-neutral-900 dark:text-neutral-100 placeholder-neutral-400 px-1" placeholder="查找画师..." @keydown="onArtistKeydown" @focus="dropdownOpen = true" @blur="onInputBlur" />
+                  
+                  <button v-if="preselectedNames.length > 0" @click.stop="clearPreselected" class="p-1 hover:text-red-500" title="清空"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                </div>
+
+                <!-- 联想菜单 -->
+                <transition enter-active-class="transition duration-100 ease-out" enter-from-class="transform scale-y-95 opacity-0" enter-to-class="transform scale-y-100 opacity-100" leave-active-class="transition duration-75 ease-in" leave-from-class="transform scale-y-100 opacity-100" leave-to-class="transform scale-y-95 opacity-0">
+                  <ul v-if="suggestions.length && dropdownOpen" class="absolute left-0 right-0 top-full mt-2 z-50 border border-neutral-200 dark:border-neutral-800 rounded-xl bg-white/95 backdrop-blur-md dark:bg-neutral-900/95 shadow-soft-lg max-h-[250px] overflow-y-auto">
+                    <li v-for="(s, i) in suggestions" :key="s.name" @mouseenter="activeIndex = i" @click.stop="!isPreselected(s.name) && selectSuggestion(s)" class="px-4 py-2.5 border-b border-neutral-100 dark:border-neutral-800/50 last:border-0 cursor-pointer flex justify-between items-center text-sm transition-colors" :class="[i === activeIndex ? 'bg-primary-50 dark:bg-neutral-800' : '', isPreselected(s.name) ? 'opacity-50 grayscale' : '']">
+                      <div class="truncate">
+                        <span class="font-bold" v-html="renderHighlightedName(s.name)"></span>
+                        <span v-if="matchedAliases(s).length" class="ml-2 text-[10px] text-neutral-500" v-html="renderHighlightedAliases(s)"></span>
+                      </div>
+                      <span class="text-[10px] font-mono bg-neutral-100 dark:bg-neutral-800 px-1">{{ s.post_count }}</span>
+                    </li>
+                  </ul>
+                </transition>
+              </div>
+            </section>
+
+            <!-- 实用工具 (Compact Row) -->
+            <section class="card p-5">
+              <div class="flex items-center justify-between border-b-2 border-primary-500 pb-2 mb-4">
+                 <h2 class="text-base font-black tracking-wide uppercase">格式工具</h2>
+                 <div class="flex items-center gap-2">
+                   <select v-model="formatToolMode" class="input-field py-1 px-2 h-7 text-xs flex-shrink-0 w-24 bg-white/50 dark:bg-neutral-900/50">
+                     <option value="anima">Anima格式</option>
+                     <option value="custom">自定义格式</option>
+                   </select>
+                   <input v-if="formatToolMode === 'custom'" v-model="customFormatToolString" type="text" class="input-field py-1 px-2 h-7 text-xs w-32 font-mono" placeholder="模板: {tag}" />
+                 </div>
+              </div>
+              <div class="text-[10px] text-neutral-400 mb-3 -mt-2">
+                <span v-if="formatToolMode === 'anima'">Anima模式：将逗号分隔的标签转换为带 @ 前缀并保留末尾逗号的格式。</span>
+                <span v-else>自定义模式：使用 {tag} 作为占位符替换每个拆分出的标签。</span>
+              </div>
+              <div class="flex items-stretch gap-4 h-24">
+                <textarea v-model="rawPromptInput" class="input-field flex-1 h-full p-2 text-xs font-mono resize-none leading-relaxed" placeholder="粘贴凌乱画师串如: a, b, c"></textarea>
+                <div class="flex flex-col gap-2 w-20 flex-shrink-0">
+                   <button @click="processPrompt" class="btn btn-primary flex-1 text-xs py-1 px-0 shadow-none">处理</button>
+                   <button @click="rawPromptInput = ''; processedPromptOutput = ''" class="btn btn-secondary flex-1 text-xs py-1 px-0">清空</button>
+                </div>
+                <div class="flex-1 relative">
+                  <textarea v-model="processedPromptOutput" readonly class="input-field w-full h-full p-2 text-xs font-mono resize-none leading-relaxed bg-neutral-50 dark:bg-neutral-950 focus:ring-0 cursor-copy" placeholder="结果..."></textarea>
+                  <button v-if="processedPromptOutput" @click="copyProcessedPrompt" class="absolute top-1 right-1 p-1 bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded shadow-sm text-neutral-600 dark:text-neutral-300 transition-colors" title="复制">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                  </button>
+                </div>
+              </div>
+            </section>
+
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div class="md:col-span-2 card p-8 md:sticky md:top-28">
-              <div class="text-base text-muted mb-4 uppercase tracking-wide font-bold">最终输出</div>
-              <div class="font-mono text-lg bg-white dark:bg-neutral-900 border-2 border-neutral-900 dark:border-neutral-100 p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] min-h-[120px]" aria-live="polite">{{ finalResult || '等待生成...' }}</div>
-            </div>
-            <div class="md:col-span-1 card p-8 md:sticky md:top-28 h-fit">
-              <div class="grid grid-cols-1 gap-6">
-                <button
-                  id="generate-btn-top"
-                  class="btn btn-primary w-full text-xl py-6"
-                  @click="generate"
-                  :disabled="store.isLoading"
-                  :aria-busy="store.isLoading"
-                >
-                  <span>生成</span>
-                  <span v-if="store.isLoading" class="ml-2 text-base animate-pulse">加载中…</span>
-                </button>
-                <button id="copy-btn-top" class="btn btn-secondary w-full text-lg py-4" @click="copyOutput">复制结果</button>
-              </div>
-            </div>
-          </div>
-        </section>
 
-        <!-- 步骤 1：选择模式、数量与格式（随机从库） -->
-        <section class="mb-20">
-          <h2 class="text-xl font-black tracking-wide text-neutral-900 dark:text-neutral-100 mb-8 border-b-4 border-primary-500 inline-block pb-2">步骤 1：模式、数量与格式</h2>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <button :class="['card p-8 transition-all text-left group', selectedMode==='pure' ? 'ring-4 ring-primary-500 bg-neutral-50 shadow-lg dark:bg-neutral-800' : 'hover:-translate-y-1']" @click="selectedMode='pure'">
-              <div class="flex flex-col gap-4">
-                <div class="flex items-center justify-between">
-                  <span v-if="selectedMode==='pure'" class="w-4 h-4 bg-neutral-900 dark:bg-neutral-100"></span>
-                  <span v-else class="w-4 h-4 border-2 border-neutral-300"></span>
-                </div>
-                <div>
-                  <div class="text-xl font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wide">纯净模式</div>
-                  <div class="text-base text-muted mt-2">只输出画师名，无任何权重符号。</div>
-                </div>
-              </div>
-            </button>
-            <button :class="['card p-8 transition-all text-left group', selectedMode==='standard' ? 'ring-4 ring-primary-500 bg-neutral-50 shadow-lg dark:bg-neutral-800' : 'hover:-translate-y-1']" @click="selectedMode='standard'">
-              <div class="flex flex-col gap-4">
-                <div class="flex items-center justify-between">
-                   <span v-if="selectedMode==='standard'" class="w-4 h-4 bg-neutral-900 dark:bg-neutral-100"></span>
-                   <span v-else class="w-4 h-4 border-2 border-neutral-300"></span>
-                </div>
-                <div>
-                  <div class="text-xl font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wide">标准模式</div>
-                  <div class="text-base text-muted mt-2">使用 (name:weight) 格式，权重均衡。</div>
-                </div>
-              </div>
-            </button>
-            <button :class="['card p-8 transition-all text-left group', selectedMode==='creative' ? 'ring-4 ring-primary-500 bg-neutral-50 shadow-lg dark:bg-neutral-800' : 'hover:-translate-y-1']" @click="selectedMode='creative'">
-              <div class="flex flex-col gap-4">
-                <div class="flex items-center justify-between">
-                   <span v-if="selectedMode==='creative'" class="w-4 h-4 bg-neutral-900 dark:bg-neutral-100"></span>
-                   <span v-else class="w-4 h-4 border-2 border-neutral-300"></span>
-                </div>
-                <div>
-                  <div class="text-xl font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wide">括号模式</div>
-                  <div class="text-base text-muted mt-2" v-pre>使用 {{{name}}} 叠加权重，增强表现。</div>
-                </div>
-              </div>
+          <!-- 右侧：固定操作台 -->
+          <div class="lg:col-span-4 lg:sticky lg:top-24 flex flex-col gap-4">
+            
+            <button @click="generate" :disabled="store.isLoading" class="btn btn-primary w-full h-16 text-lg tracking-widest font-black active:scale-95 transition-all group overflow-hidden relative shadow-soft-lg hover:shadow-xl dark:shadow-soft-dark dark:hover:shadow-soft-dark-lg">
+              <span class="absolute inset-0 w-full h-full bg-white/20 -translate-x-full group-hover:animate-[shimmer_1s_infinite]"></span>
+              <span v-if="!store.isLoading" class="relative z-10">一键生成</span>
+              <span v-else class="relative z-10 flex items-center justify-center gap-2"><svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>处理中...</span>
             </button>
 
-            <button :class="['card p-8 transition-all text-left group', selectedMode==='nai' ? 'ring-4 ring-primary-500 bg-neutral-50 shadow-lg dark:bg-neutral-800' : 'hover:-translate-y-1']" @click="selectedMode='nai'">
-              <div class="flex flex-col gap-4">
-                <div class="flex items-center justify-between">
-                   <span v-if="selectedMode==='nai'" class="w-4 h-4 bg-neutral-900 dark:bg-neutral-100"></span>
-                   <span v-else class="w-4 h-4 border-2 border-neutral-300"></span>
-                </div>
-                <div>
-                  <div class="text-xl font-bold text-neutral-900 dark:text-neutral-100 uppercase tracking-wide">NAI 模式</div>
-                  <div class="text-base text-muted mt-2">NovelAI 专用格式，大括号权重。</div>
-                </div>
+            <div class="card p-0 flex flex-col flex-1 min-h-[300px] border border-neutral-200 dark:border-neutral-800 shadow-soft-lg overflow-hidden">
+              <div class="bg-neutral-50 dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 text-neutral-900 dark:text-neutral-100 px-4 py-3 font-semibold flex justify-between items-center text-sm">
+                 <span>输出结果</span>
+                 <button @click="copyOutput" class="text-xs font-bold hover:underline flex items-center gap-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg> 复制</button>
               </div>
-            </button>
-          </div>
-
-          <div class="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div class="card p-8">
-              <label class="block text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-4">艺术家数量</label>
-              <div class="flex items-center gap-6 justify-center py-4">
-                <button @click="decrementCount" class="btn btn-secondary w-16 h-16 !p-0 flex items-center justify-center text-3xl" aria-label="减少">−</button>
-                <div class="text-6xl font-black w-24 text-center tabular-nums" aria-live="polite">{{ artistCount }}</div>
-                <button @click="incrementCount" class="btn btn-secondary w-16 h-16 !p-0 flex items-center justify-center text-3xl" aria-label="增加">+</button>
-              </div>
-              <div class="mt-4 text-sm text-muted text-center">生成数量：1 - 20</div>
+              <textarea v-model="finalResult" readonly class="flex-1 w-full bg-white dark:bg-neutral-950 p-4 font-mono text-sm resize-none focus:outline-none focus:ring-0 leading-relaxed" placeholder="等待生成..."></textarea>
             </div>
-            <div class="card p-8">
-               <label class="block text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-4">随机来源策略</label>
-               <div class="p-4 bg-neutral-100 dark:bg-neutral-800 border-l-4 border-neutral-500">
-                 <div class="text-base">从全库随机补足</div>
-                 <div class="text-sm text-muted mt-1">优先排除已选，保证不重复</div>
+
+            <!-- 热词面板 (Ultra Compact Slider/Chips) -->
+            <div class="card p-4">
+               <div class="flex items-center justify-between mb-3 text-xs font-bold text-neutral-500">
+                  <span>快速随选推荐</span>
+                  <button @click="refreshRecommendations" class="hover:text-primary-600"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button>
+               </div>
+               <div class="flex flex-wrap gap-1.5 max-h-[100px] overflow-y-auto pr-1 custom-scrollbar">
+                 <button v-for="r in recommendedArtists" :key="r.name" @click="addPreselected(r.name)" class="px-2 py-0.5 border border-neutral-300 dark:border-neutral-700 text-[10px] bg-white dark:bg-neutral-900 hover:border-primary-500 hover:text-primary-600 hover:-translate-y-px transition-all rounded-sm flex items-center gap-1">
+                    {{ r.name }}<span class="opacity-50 inline-block scale-90">{{r.post_count}}</span>
+                 </button>
                </div>
             </div>
+
           </div>
 
-          <!-- 可选功能块：自定义格式包装 -->
-          <div class="mt-8 card p-8 border-l-4 border-neutral-500">
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-3">
-                <input type="checkbox" id="enable-custom-fmt" v-model="enableCustomFormat" class="w-5 h-5 accent-primary-500 cursor-pointer" />
-                <label for="enable-custom-fmt" class="text-lg font-bold text-neutral-900 dark:text-neutral-100 cursor-pointer select-none">启用自定义格式包装</label>
-              </div>
-              <div class="text-sm text-muted">适配所有模式结果</div>
-            </div>
-
-            <div v-if="enableCustomFormat" class="fade-in">
-               <div class="flex flex-col md:flex-row gap-4">
-                  <input v-model="customFormatString" type="text" class="input-field flex-1 font-mono" placeholder="例: (draw by {name}:1.2)" />
-                  <div class="flex gap-2">
-                     <button @click="customFormatString='by {name}'" class="btn btn-secondary text-xs px-2 whitespace-nowrap">by {name}</button>
-                     <button @click="customFormatString='artist:{name}'" class="btn btn-secondary text-xs px-2 whitespace-nowrap">artist:{name}</button>
-                  </div>
-               </div>
-               <div class="mt-2 text-xs text-muted">使用 <span class="font-mono bg-neutral-100 dark:bg-neutral-800 px-1 rounded">{name}</span> 代表当前模式生成的画师串（可能是纯名、权重或嵌套结果）。</div>
-            </div>
-          </div>
-          <!-- 新增：作品数筛选 -->
-          <div class="card p-4">
-            <label class="block text-sm text-neutral-600 dark:text-neutral-300">作品数筛选</label>
-            <div class="mt-2 grid grid-cols-2 gap-2">
-              <select id="post-count-filter-mode" v-model="postCountFilterMode" class="input-field">
-                <option value="none">不限</option>
-                <option value="gt">大于</option>
-                <option value="lt">小于</option>
-              </select>
-              <input id="post-count-threshold" v-model.number="postCountThreshold" type="number" min="0" class="input-field" placeholder="阈值" />
-            </div>
-            <div class="mt-2 text-xs text-muted">用于联想与随机补足的过滤</div>
-          </div>
-
-        <!-- 创意模式：括号样式与嵌套层数配置 -->
-        <div v-if="selectedMode==='creative'" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="card p-4">
-            <label class="block text-sm text-neutral-600 dark:text-neutral-300">括号样式</label>
-            <div class="mt-2 grid grid-cols-3 gap-2" role="radiogroup" aria-label="括号样式">
-              <label class="inline-flex items-center gap-2 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-700 cursor-pointer">
-                <input type="radio" name="bracket-style" value="paren" v-model="creativeBracketStyle" />
-                <span>() ×1.1</span>
-              </label>
-              <label class="inline-flex items-center gap-2 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-700 cursor-pointer">
-                <input type="radio" name="bracket-style" value="curly" v-model="creativeBracketStyle" />
-                <span>{} ×1.05</span>
-              </label>
-              <label class="inline-flex items-center gap-2 px-2 py-1 rounded border border-neutral-300 dark:border-neutral-700 cursor-pointer">
-                <input type="radio" name="bracket-style" value="square" v-model="creativeBracketStyle" />
-                <span>[] ×0.9</span>
-              </label>
-            </div>
-            <div class="mt-2 text-xs text-muted">提示：括号语法仅包裹名称来表达权重；() ×1.1 · {} ×1.05 · [] ×0.9。</div>
-          </div>
-          <div class="card p-4">
-            <label class="block text-sm text-neutral-600 dark:text-neutral-300">嵌套层数（0-5）</label>
-            <input id="creative-nest-levels" v-model.number="creativeNestLevels" type="number" min="0" max="5" class="mt-2 input-field" />
-            <div class="mt-2 text-xs text-muted">0 表示随机；最多 5 层：越多权重效果越强</div>
-          </div>
         </div>
-
-        <!-- 标准模式：权重范围（0-2，步进 0.1） -->
-        <div v-if="selectedMode==='standard'" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="card p-4">
-            <label class="block text-sm text-neutral-600 dark:text-neutral-300">权重下限（min，0-2）</label>
-            <input id="standard-weight-min" v-model.number="standardWeightMin" type="range" min="0" max="2" step="0.1" class="mt-2 w-full" />
-            <label class="block text-sm text-neutral-600 dark:text-neutral-300 mt-4">权重上限（max，0-2）</label>
-            <input id="standard-weight-max" v-model.number="standardWeightMax" type="range" min="0" max="2" step="0.1" class="mt-2 w-full" />
-            <div class="mt-2 text-xs text-muted">当前：{{ standardWeightMin.toFixed(1) }} - {{ standardWeightMax.toFixed(1) }}；若相等则统一权重</div>
-          </div>
-        </div>
-
-        <!-- NAI 模式：权重范围（0-2，步进 0.1） -->
-        <div v-if="selectedMode==='nai'" class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="card p-4">
-            <label class="block text-sm text-neutral-600 dark:text-neutral-300">权重下限（min，0-2）</label>
-            <input id="nai-weight-min" v-model.number="naiWeightMin" type="range" min="0" max="2" step="0.1" class="mt-2 w-full" />
-            <label class="block text-sm text-neutral-600 dark:text-neutral-300 mt-4">权重上限（max，0-2）</label>
-            <input id="nai-weight-max" v-model.number="naiWeightMax" type="range" min="0" max="2" step="0.1" class="mt-2 w-full" />
-            <div class="mt-2 text-xs text-muted">当前：{{ naiWeightMin.toFixed(1) }} - {{ naiWeightMax.toFixed(1) }}；范围内随机</div>
-          </div>
-        </div>
-
-
-      </section>
-
-      <!-- 步骤 2：预选艺术家（可选） -->
-      <section class="mt-12">
-        <h2 class="text-xl font-black tracking-wide text-neutral-900 dark:text-neutral-100 mb-8 border-b-4 border-primary-500 inline-block pb-2">步骤 2：预选艺术家（可选）</h2>
-
-        <div ref="artistDropdownRef" class="relative max-w-3xl">
-          <label class="block text-lg font-bold text-neutral-900 dark:text-neutral-100 mb-4">搜索并添加艺术家</label>
-
-          <!-- 多选输入框容器 (Neo-Brutalist Style) -->
-          <div
-            class="min-h-[72px] p-3 flex flex-wrap items-center gap-3 bg-white dark:bg-neutral-900 border-2 border-neutral-900 dark:border-neutral-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] transition-all"
-            :class="[dropdownOpen ? 'translate-x-[2px] translate-y-[2px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]' : 'hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]']"
-            @click="focusInput"
-          >
-            <!-- 已选标签 (Chips: Hard Borders) -->
-            <transition-group name="list" appear>
-              <span
-                v-for="(n, i) in preselectedNames"
-                :key="n"
-                class="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-500 text-neutral-900 text-sm font-bold border-2 border-neutral-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] animate-in zoom-in-90 duration-200"
-              >
-                <span>{{ n }}</span>
-                <button
-                  class="p-0.5 hover:bg-neutral-900 hover:text-white transition-colors border border-transparent hover:border-white/20 rounded-sm"
-                  @click.stop="removePreselected(i)"
-                  tabindex="-1"
-                >
-                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
-              </span>
-            </transition-group>
-
-            <!-- 输入框 -->
-            <input
-              ref="artistInputRef"
-              v-model="artistQuery"
-              type="text"
-              class="flex-1 min-w-[150px] bg-transparent border-none outline-none text-lg font-medium text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-500 h-10 px-2"
-              placeholder="输入名字查找..."
-              @keydown="onArtistKeydown"
-              @focus="dropdownOpen = true"
-              @blur="onInputBlur"
-              aria-autocomplete="list"
-              aria-controls="artist-suggestion-list"
-              :aria-expanded="suggestions.length > 0"
-            />
-
-            <!-- 图标区 -->
-            <div class="flex items-center gap-3 pr-1 border-l-2 border-neutral-200 dark:border-neutral-800 pl-3 ml-2">
-              <div v-if="store.isLoading" class="animate-spin text-neutral-900 dark:text-neutral-100">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
-              </div>
-              <button
-                v-if="preselectedNames.length > 0"
-                @click.stop="clearPreselected"
-                class="group flex items-center justify-center p-2 hover:bg-red-500 hover:text-white border-2 border-transparent hover:border-neutral-900 transition-all rounded-md"
-                title="清空"
-              >
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- 下拉菜单 (Hard Borders & Shadows) -->
-          <transition
-            enter-active-class="transition duration-100 ease-out"
-            enter-from-class="transform scale-y-95 opacity-0"
-            enter-to-class="transform scale-y-100 opacity-100"
-            leave-active-class="transition duration-75 ease-in"
-            leave-from-class="transform scale-y-100 opacity-100"
-            leave-to-class="transform scale-y-95 opacity-0"
-          >
-            <div v-if="suggestions.length && dropdownOpen" class="absolute left-0 right-0 top-full mt-4 z-50">
-              <ul
-                id="artist-suggestion-list"
-                role="listbox"
-                class="border-2 border-neutral-900 dark:border-neutral-100 bg-white dark:bg-neutral-900 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] max-h-[400px] overflow-y-auto"
-              >
-                <li
-                  v-for="(s, i) in suggestions"
-                  :key="s.name + '-' + i"
-                  role="option"
-                  :aria-selected="i === activeIndex"
-                  @mouseenter="activeIndex = i"
-                  @click.stop="!isPreselected(s.name) && selectSuggestion(s)"
-                  class="group px-5 py-4 border-b-2 border-neutral-100 dark:border-neutral-800 last:border-0 cursor-pointer flex items-center justify-between transition-colors"
-                  :class="[
-                    i === activeIndex ? 'bg-primary-50 dark:bg-neutral-800' : 'bg-white dark:bg-neutral-900',
-                    isPreselected(s.name) ? 'opacity-50 grayscale cursor-not-allowed' : ''
-                  ]"
-                >
-                  <div class="flex-1 min-w-0 pr-4">
-                    <div class="flex items-center gap-3">
-                       <div class="font-black text-lg text-neutral-900 dark:text-neutral-100 truncate" v-html="renderHighlightedName(s.name)"></div>
-                       <span v-if="isPreselected(s.name)" class="text-xs font-bold px-2 py-0.5 border-2 border-neutral-900 bg-neutral-200 text-neutral-900">ADDED</span>
-                    </div>
-                    <div v-if="matchedAliases(s).length" class="mt-1 text-sm text-neutral-600 dark:text-neutral-400 truncate font-mono">
-                      ↳ <span v-html="renderHighlightedAliases(s)"></span>
-                    </div>
-                  </div>
-                  <div class="text-right flex-shrink-0">
-                     <span class="block text-xs font-bold text-neutral-400 uppercase tracking-wider mb-1">WORKS</span>
-                     <span class="inline-block px-2 py-0.5 bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-sm font-bold font-mono">{{ s.post_count || 0 }}</span>
-                  </div>
-                </li>
-              </ul>
-            </div>
-          </transition>
-        </div>
-
-        <!-- 推荐面板 (Bold Buttons) -->
-        <div class="mt-8">
-          <div class="flex items-center justify-between mb-4">
-             <div class="text-sm font-black text-neutral-900 dark:text-neutral-100 uppercase tracking-widest">热门推荐</div>
-             <button
-               @click="refreshRecommendations"
-               class="p-1.5 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors text-neutral-500 hover:text-primary-600"
-               title="换一批"
-             >
-               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-             </button>
-          </div>
-          <div class="flex flex-wrap gap-4">
-            <button
-              v-for="(r,i) in recommendedArtists"
-              :key="r.name + '-' + i"
-              class="group relative px-5 py-2.5 bg-white dark:bg-neutral-900 border-2 border-neutral-900 dark:border-neutral-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] hover:bg-primary-500 transition-all active:translate-y-0 active:shadow-none"
-              @click="addPreselected(r.name)"
-            >
-              <span class="font-bold text-neutral-900 dark:text-neutral-100 group-hover:text-neutral-900">{{ r.name }}</span>
-              <span class="absolute -top-3 -right-3 px-1.5 py-0.5 bg-neutral-900 text-white text-[10px] font-mono border border-white">{{ r.post_count }}</span>
-            </button>
-          </div>
-        </div>
-      </section>
-
       </div>
     </main>
   </div>
@@ -560,8 +430,60 @@ function onArtistKeydown(e: KeyboardEvent) {
     if (target && !isPreselected(target.name)) selectSuggestion(target)
   }
 }
+
+// --- 实用工具：画师串处理 Logic ---
+const rawPromptInput = ref('')
+const processedPromptOutput = ref('')
+const formatToolMode = ref<'anima' | 'custom'>('anima')
+const customFormatToolString = ref('@{tag},')
+
+function processPrompt() {
+  if (!rawPromptInput.value.trim()) {
+    processedPromptOutput.value = ''
+    return
+  }
+  // Split by english or chinese commas, or newlines
+  const parts = rawPromptInput.value.split(/[,，\n]/).map(s => s.trim()).filter(Boolean)
+  
+  if (formatToolMode.value === 'anima') {
+    const result = parts.map(tag => tag.startsWith('@') ? tag : `@${tag}`)
+    processedPromptOutput.value = result.join(', ') + ','
+  } else {
+    const template = customFormatToolString.value || '{tag}'
+    const result = parts.map(tag => template.replace(/\{tag\}/g, tag))
+    processedPromptOutput.value = result.join(' ')
+  }
+}
+
+function copyProcessedPrompt() {
+  if (!processedPromptOutput.value) return
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(processedPromptOutput.value)
+      .then(() => store.addToast('success', '已复制', '处理后的画师串已复制到剪贴板', 1800))
+      .catch(() => store.addToast('error', '复制失败', '请手动复制文本内容'))
+  }
+}
 </script>
 
 <style scoped>
-/* 保持极简，主要靠原子类与轻边框 */
+/* 自定义细滚动条 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+:deep(.dark) .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
 </style>

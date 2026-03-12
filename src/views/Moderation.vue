@@ -197,7 +197,7 @@ const handleDelete = async (id: string) => {
 
         <!-- 1. Unified Login -->
         <div v-if="!store.user && !isGuest" class="max-w-md mx-auto mt-20">
-          <div class="card p-8 border-2 border-black flex flex-col gap-6 shadow-[8px_8px_0_0_#000]">
+          <div class="card p-8 border border-neutral-200 dark:border-neutral-800 flex flex-col gap-6 shadow-soft-lg rounded-2xl">
             <h2 class="text-3xl font-black text-center uppercase">{{ t('auth.identity_check') }}</h2>
 
             <button
@@ -237,28 +237,27 @@ const handleDelete = async (id: string) => {
            </div>
 
           <!-- Tabs -->
-           <div class="flex items-center justify-between border-b-2 border-neutral-200 dark:border-neutral-800 mb-8 pb-1">
-             <div class="flex gap-4 overflow-x-auto -mb-1.5">
-              <button @click="activeTab = 'my-submissions'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'my-submissions' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
+           <div class="flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 mb-8 pb-0">
+             <div class="flex gap-4 overflow-x-auto -mb-[1px]">
+              <button @click="activeTab = 'my-submissions'" :class="['px-6 py-3 font-semibold border-b-2 -mb-[1px] whitespace-nowrap transition-colors', activeTab === 'my-submissions' ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300']">
                  {{ t('admin.my_submissions') }} ({{ store.userPrompts.length }})
               </button>
-              <button @click="activeTab = 'favorites'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'favorites' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
+              <button @click="activeTab = 'favorites'" :class="['px-6 py-3 font-semibold border-b-2 -mb-[1px] whitespace-nowrap transition-colors', activeTab === 'favorites' ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300']">
                  {{ t('admin.favorites') }} ({{ store.favorites.length }})
               </button>
 
-              <!-- Admin Tabs -->
               <template v-if="store.isModerator">
-                <div class="w-px bg-neutral-300 dark:bg-neutral-700 mx-2 h-8 self-center"></div>
-                <button @click="activeTab = 'pending'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'pending' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
+                <div class="w-px bg-neutral-200 dark:bg-neutral-800 mx-2 h-6 self-center"></div>
+                <button @click="activeTab = 'pending'" :class="['px-6 py-3 font-semibold border-b-2 -mb-[1px] whitespace-nowrap transition-colors', activeTab === 'pending' ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300']">
                    {{ t('admin.pending') }} ({{ store.pendingSubmissions.length }})
                 </button>
-                <button @click="activeTab = 'draft'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'draft' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
+                <button @click="activeTab = 'draft'" :class="['px-6 py-3 font-semibold border-b-2 -mb-[1px] whitespace-nowrap transition-colors', activeTab === 'draft' ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300']">
                    {{ t('admin.drafts') }} ({{ store.draftSubmissions.length }})
                 </button>
-                <button @click="activeTab = 'published'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'published' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
+                <button @click="activeTab = 'published'" :class="['px-6 py-3 font-semibold border-b-2 -mb-[1px] whitespace-nowrap transition-colors', activeTab === 'published' ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300']">
                    {{ t('admin.published') }} ({{ publishedList.length }})
                 </button>
-                <button @click="activeTab = 'rejected'" :class="['px-6 py-3 font-bold border-b-4 -mb-1.5 whitespace-nowrap transition-colors', activeTab === 'rejected' ? 'border-primary-500 text-black dark:text-white' : 'border-transparent text-neutral-500 hover:text-neutral-800']">
+                <button @click="activeTab = 'rejected'" :class="['px-6 py-3 font-semibold border-b-2 -mb-[1px] whitespace-nowrap transition-colors', activeTab === 'rejected' ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300']">
                    {{ t('admin.rejected') }} ({{ store.rejectedSubmissions.length }})
                 </button>
               </template>
@@ -307,11 +306,11 @@ const handleDelete = async (id: string) => {
              <div v-if="store.favorites.length === 0" class="col-span-full text-center py-12 text-neutral-400 bg-neutral-50 dark:bg-zinc-800/50 rounded-lg border-dashed border-2">
                {{ t('admin.no_favorites') }}
              </div>
-             <div v-for="item in store.favorites" :key="item.id" class="card p-4 flex flex-col h-full hover:border-black transition-all group relative">
-                <button @click="store.toggleFavorite(item)" class="absolute top-2 right-2 p-2 bg-white/90 rounded-full hover:bg-red-50 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+             <div v-for="item in store.favorites" :key="item.id" class="card p-4 flex flex-col h-full ring-1 ring-transparent hover:ring-primary-300 dark:hover:ring-primary-700 transition-all group relative">
+                <button @click="store.toggleFavorite(item)" class="absolute top-2 right-2 p-2 bg-white/90 rounded-full hover:bg-red-50 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm z-10">
                   <span class="text-xl">♥</span>
                 </button>
-                <div v-if="item.image" class="h-40 bg-neutral-100 mb-4 -mx-4 -mt-4 overflow-hidden border-b-2 border-black">
+                <div v-if="item.image" class="h-40 bg-neutral-100 dark:bg-neutral-800 mb-4 -mx-4 -mt-4 overflow-hidden border-b border-neutral-200 dark:border-neutral-800 rounded-t-xl">
                    <img :src="item.image" class="w-full h-full object-cover">
                 </div>
                 <h3 class="font-bold text-lg mb-1">{{ item.title }}</h3>
@@ -352,7 +351,7 @@ const handleDelete = async (id: string) => {
              </div>
              <div v-for="item in store.pendingSubmissions" :key="item.id" class="card p-6 flex flex-col md:flex-row gap-6">
                 <!-- Image Preview -->
-                <div v-if="item.image" class="w-full md:w-48 h-48 flex-shrink-0 bg-neutral-100 border-2 border-black">
+                <div v-if="item.image" class="w-full md:w-48 h-48 flex-shrink-0 bg-neutral-100 dark:bg-neutral-800 rounded-xl overflow-hidden shadow-sm">
                   <img :src="item.image" class="w-full h-full object-cover">
                 </div>
                 <div class="flex-1 flex flex-col">
@@ -372,13 +371,13 @@ const handleDelete = async (id: string) => {
                    <div class="flex flex-wrap gap-3 mt-auto pt-4 border-t border-neutral-200">
                        <button
                           @click="handleApprove(item.id)"
-                          class="btn bg-green-600 text-white hover:bg-green-700 px-4 py-2 text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                          class="btn bg-green-500 text-white hover:bg-green-600 px-4 py-2 text-sm shadow-sm"
                        >
                            {{ t('common.publish') }}
                        </button>
                        <button
                           @click="handleReject(item.id)"
-                          class="btn bg-red-600 text-white hover:bg-red-700 px-4 py-2 text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                          class="btn bg-red-500 text-white hover:bg-red-600 px-4 py-2 text-sm shadow-sm"
                        >
                            {{ t('common.reject') }}
                        </button>
@@ -424,8 +423,8 @@ const handleDelete = async (id: string) => {
 
           <!-- Published Items -->
           <div v-else-if="activeTab === 'published'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-             <div v-for="item in publishedList" :key="item.id" class="card p-4 flex flex-col h-full hover:border-black transition-all">
-                <div v-if="item.image" class="h-40 bg-neutral-100 mb-4 -mx-4 -mt-4 overflow-hidden border-b-2 border-black">
+             <div v-for="item in publishedList" :key="item.id" class="card p-4 flex flex-col h-full ring-1 ring-transparent hover:ring-primary-300 transition-all">
+                <div v-if="item.image" class="h-40 bg-neutral-100 dark:bg-neutral-800 mb-4 -mx-4 -mt-4 overflow-hidden border-b border-neutral-200 dark:border-neutral-800 rounded-t-xl">
                    <img :src="item.image" class="w-full h-full object-cover">
                 </div>
                 <h3 class="font-bold text-lg mb-1">{{ item.title }}</h3>
@@ -454,9 +453,9 @@ const handleDelete = async (id: string) => {
     </main>
 
     <!-- Edit Modal -->
-    <div v-if="showEditModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-       <div class="bg-white dark:bg-zinc-900 w-full max-w-2xl max-h-[90vh] overflow-y-auto border-2 border-black shadow-[8px_8px_0_0_#fff] p-8">
-          <h2 class="text-2xl font-black mb-6">{{ t('admin.edit_content') }}</h2>
+    <div v-if="showEditModal" class="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity">
+       <div class="bg-white dark:bg-neutral-900 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-2xl p-8">
+          <h2 class="text-2xl font-bold tracking-tight mb-6">{{ t('admin.edit_content') }}</h2>
 
           <div class="space-y-4">
              <div>
@@ -473,7 +472,7 @@ const handleDelete = async (id: string) => {
                    <label class="label">{{ t('share.form_image') }}</label>
                    <input type="file" @change="handleFileSelect" class="block w-full text-sm mb-1">
                    <input v-model="editForm.image" @input="editFile = null" type="text" placeholder="https://..." class="input-field w-full text-xs p-2">
-                   <div v-if="editForm.image" class="mt-2 h-20 w-20 bg-gray-100"><img :src="editForm.image" class="h-full w-full object-cover"></div>
+                   <div v-if="editForm.image" class="mt-3 h-24 w-24 bg-neutral-100 dark:bg-neutral-800 rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700 shadow-sm"><img :src="editForm.image" class="h-full w-full object-cover"></div>
                 </div>
              </div>
 

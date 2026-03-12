@@ -3,6 +3,7 @@ export interface Artist {
   name: string // 主名称
   other_names: string[] // 别名数组
   post_count: number // 作品数量
+  danbooru_url?: string // Danbooru 画师主页 URL（由 enrich_artists.py 生成）
 }
 
 // Toast通知类型

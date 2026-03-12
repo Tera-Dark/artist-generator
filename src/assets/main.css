@@ -2,7 +2,7 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
-/* Custom Components - 黑白黄极简工业风设计系统 */
+/* Custom Components - 现代轻简透明拟物风 (Modern Elegant) */
 @layer components {
   /* Base Typography & Layout Overrides */
   .container-responsive {
@@ -14,102 +14,87 @@
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-3 px-8 py-4 text-base font-bold uppercase tracking-widest rounded-none transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-0;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold tracking-wide rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-neutral-900;
   }
 
   .btn-primary {
-    @apply bg-primary-500 text-neutral-900 hover:bg-primary-400 border-2 border-neutral-900 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[6px] active:translate-y-[6px] dark:border-neutral-100 dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] dark:hover:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)];
+    @apply bg-primary-500 text-white hover:bg-primary-600 shadow-soft hover:shadow-soft-lg hover:-translate-y-0.5 active:translate-y-0 active:shadow-none dark:shadow-soft-dark dark:hover:shadow-soft-dark-lg;
   }
 
   .btn-secondary {
-    @apply bg-white text-neutral-900 hover:bg-neutral-50 border-2 border-neutral-900 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] active:shadow-none active:translate-x-[6px] active:translate-y-[6px] dark:bg-neutral-900 dark:text-neutral-100 dark:border-neutral-100 dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] dark:hover:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)];
+    @apply bg-white text-neutral-700 hover:bg-neutral-50 border border-neutral-200 shadow-sm hover:shadow-soft hover:-translate-y-0.5 active:translate-y-0 dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 dark:hover:bg-neutral-700 dark:hover:border-neutral-600;
   }
 
   .card {
-    @apply bg-white border-2 border-neutral-900 rounded-none transition-all duration-200 dark:bg-neutral-900 dark:border-neutral-100;
-    box-shadow: 10px 10px 0px 0px rgba(0, 0, 0, 1);
-  }
-
-  .dark .card {
-    box-shadow: 10px 10px 0px 0px rgba(255, 255, 255, 1);
+    @apply bg-white/80 backdrop-blur-md border border-neutral-200/50 rounded-2xl shadow-soft transition-all duration-300 dark:bg-neutral-900/80 dark:border-neutral-800/50 dark:shadow-none;
   }
 
   .card-hover {
-    @apply hover:-translate-y-1 hover:shadow-[14px_14px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[14px_14px_0px_0px_rgba(255,255,255,1)];
+    @apply hover:-translate-y-1 hover:shadow-soft-lg dark:hover:border-neutral-700;
   }
 
   .preset-card {
-    @apply card card-hover p-10 cursor-pointer text-center relative overflow-hidden;
+    @apply card card-hover p-8 cursor-pointer text-center relative overflow-hidden flex flex-col items-center justify-center gap-4;
   }
 
   .preset-card.active {
-    @apply bg-primary-500 text-neutral-900;
+    @apply bg-primary-50 border-primary-500 text-primary-700 dark:bg-primary-900/20 dark:border-primary-500 dark:text-primary-300 shadow-inner;
   }
 
   .input-field {
-    @apply w-full px-5 py-4 text-lg border-2 border-neutral-900 rounded-none focus:ring-0 focus:border-primary-500 transition-all duration-200 bg-white dark:bg-neutral-900 dark:border-neutral-100 dark:text-neutral-100 dark:focus:border-primary-500 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] dark:shadow-[5px_5px_0px_0px_rgba(255,255,255,1)];
+    @apply w-full px-4 py-3 text-base bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:bg-white transition-all duration-200 dark:bg-neutral-950 dark:border-neutral-800 dark:text-neutral-100 dark:focus:ring-primary-500/50 dark:focus:bg-neutral-900 shadow-sm;
   }
 
   .modal-backdrop {
-    @apply fixed inset-0 bg-neutral-900/80 backdrop-blur-sm z-40;
+    @apply fixed inset-0 bg-neutral-900/40 backdrop-blur-sm z-40 transition-opacity;
   }
 
   .modal-content {
-    @apply bg-white border-2 border-neutral-900 rounded-none max-w-4xl w-full max-h-[90vh] overflow-hidden z-50 dark:bg-neutral-900 dark:border-neutral-100;
-    box-shadow: 16px 16px 0px 0px rgba(0, 0, 0, 1);
-  }
-
-  .dark .modal-content {
-    box-shadow: 16px 16px 0px 0px rgba(255, 255, 255, 1);
+    @apply bg-white border border-neutral-200 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden z-50 shadow-soft-lg dark:bg-neutral-900 dark:border-neutral-800 dark:shadow-2xl transition-transform;
   }
 
   .toast {
-    @apply fixed top-4 right-4 bg-white border-2 border-neutral-900 rounded-none p-6 z-50 transition-all duration-200 dark:bg-neutral-900 dark:border-neutral-100 dark:text-neutral-100;
-    box-shadow: 8px 8px 0px 0px rgba(0, 0, 0, 1);
-  }
-
-  .dark .toast {
-    box-shadow: 8px 8px 0px 0px rgba(255, 255, 255, 1);
+    @apply fixed top-4 right-4 bg-white/95 backdrop-blur-md border border-neutral-200 rounded-xl p-5 z-50 transition-all duration-300 shadow-soft-lg dark:bg-neutral-900/95 dark:border-neutral-800 dark:text-neutral-100 flex items-center gap-3;
   }
 
   .toast.success {
-    @apply border-primary-500;
+    @apply border-l-4 border-l-green-500;
   }
 
   .toast.error {
-    @apply border-red-500;
+    @apply border-l-4 border-l-red-500;
   }
 
   .toast.warning {
-    @apply border-yellow-500;
+    @apply border-l-4 border-l-yellow-500;
   }
 
   /* App Shell & Navigation */
   .app-shell {
-    @apply min-h-screen bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100;
+    @apply min-h-screen bg-neutral-50 text-neutral-800 font-sans tracking-tight dark:bg-neutral-950 dark:text-neutral-100 selection:bg-primary-200 selection:text-primary-900 dark:selection:bg-primary-900/50 dark:selection:text-primary-100;
   }
 
   .app-nav {
-    @apply sticky top-0 z-40 bg-white border-b-2 border-neutral-900 dark:bg-neutral-900 dark:border-neutral-100;
+    @apply sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-neutral-200/80 dark:bg-neutral-950/80 dark:border-neutral-800/80 transition-colors duration-300;
   }
 
   .nav-container {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between;
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between;
   }
 
   .nav-brand {
-    @apply flex items-center gap-3;
+    @apply flex items-center gap-2 font-black tracking-tight text-lg text-neutral-900 dark:text-white;
   }
 
   .nav-links {
-    @apply hidden md:flex items-center gap-8 text-sm font-bold uppercase tracking-widest;
+    @apply hidden md:flex items-center gap-6 text-sm font-medium;
   }
 
   .nav-link {
-    @apply text-neutral-500 hover:text-neutral-900 transition-colors duration-200 dark:text-neutral-400 dark:hover:text-primary-400;
+    @apply text-neutral-500 hover:text-neutral-900 transition-colors duration-200 dark:text-neutral-400 dark:hover:text-white relative;
   }
 
   .nav-link-active {
-    @apply text-neutral-900 dark:text-primary-400 border-b-4 border-primary-500 pb-1;
+    @apply text-primary-600 dark:text-primary-400 font-semibold;
   }
 }

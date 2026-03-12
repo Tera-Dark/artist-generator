@@ -300,7 +300,7 @@ watch(() => store.user, (val) => {
             </button>
             <button
               @click="handleNewPrompt"
-              class="btn btn-primary text-base px-6 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+              class="btn btn-primary text-base px-6 py-3"
             >
               {{ t('share.new_prompt') }}
             </button>
@@ -331,10 +331,10 @@ watch(() => store.user, (val) => {
               :key="tag"
               @click="activeTag = activeTag === tag ? '' : tag"
               :class="[
-                'px-4 py-2 text-sm font-bold border-2 transition-all',
+                'px-4 py-2 text-sm font-semibold rounded-lg border transition-all',
                 activeTag === tag
-                  ? 'bg-neutral-900 text-white border-neutral-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:bg-neutral-100 dark:text-neutral-900 dark:border-neutral-100 dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]'
-                  : 'bg-white text-neutral-600 border-neutral-200 hover:border-neutral-900 hover:text-neutral-900 dark:bg-neutral-900 dark:text-neutral-400 dark:border-neutral-700 dark:hover:border-neutral-100 dark:hover:text-neutral-100'
+                  ? 'bg-primary-50 text-primary-600 border-primary-500 shadow-sm dark:bg-primary-900/30 dark:text-primary-400 dark:border-primary-500'
+                  : 'bg-white text-neutral-600 border-neutral-200 hover:border-primary-300 dark:bg-neutral-900 dark:text-neutral-400 dark:border-neutral-800 dark:hover:border-neutral-600'
               ]"
             >
               #{{ tag }}
@@ -358,7 +358,7 @@ watch(() => store.user, (val) => {
             class="card p-0 flex flex-col group hover:-translate-y-1 transition-transform duration-200 relative"
           >
             <!-- Image Area with Favorite Button Overlay -->
-            <div class="relative w-full aspect-video bg-neutral-100 dark:bg-neutral-800 border-b-2 border-neutral-900 dark:border-neutral-100 overflow-hidden group-inner">
+            <div class="relative w-full aspect-video bg-neutral-100 dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-800 overflow-hidden group-inner">
                <img
                  v-if="item.image"
                  :src="item.image"
@@ -383,15 +383,15 @@ watch(() => store.user, (val) => {
             <div class="p-5 flex-1 flex flex-col">
               <div class="flex items-start justify-between mb-2 gap-2">
                 <h3 class="text-lg font-bold truncate flex-1" :title="item.title">{{ item.title || t('share.untitled') }}</h3>
-                <span class="inline-flex items-center px-2 py-1 text-xs font-bold border border-neutral-900 dark:border-neutral-100 bg-neutral-100 dark:bg-neutral-800 uppercase tracking-wider whitespace-nowrap">
+                <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 uppercase tracking-wider whitespace-nowrap">
                   {{ item.model }}
                 </span>
               </div>
 
               <div class="text-xs text-neutral-500 mb-3 font-mono">By {{ item.username || item.author || 'Anonymous' }}</div>
 
-              <div class="relative flex-1 mb-4 bg-neutral-50 dark:bg-neutral-950 border-2 border-neutral-100 dark:border-neutral-800 p-3 text-sm font-mono leading-relaxed h-24 overflow-hidden shadow-inner">
-                <div class="line-clamp-3 break-all opacity-80 group-hover:opacity-100 transition-opacity">{{ item.prompt }}</div>
+              <div class="relative flex-1 mb-4 bg-neutral-50 dark:bg-neutral-950/50 border border-neutral-200 dark:border-neutral-800/80 rounded-xl p-4 text-sm font-mono leading-relaxed h-28 overflow-hidden shadow-inner cursor-text">
+                <div class="line-clamp-4 break-all text-neutral-600 dark:text-neutral-400 group-hover:text-neutral-900 dark:group-hover:text-neutral-200 transition-colors">{{ item.prompt }}</div>
               </div>
 
               <div class="flex flex-wrap gap-2 mt-auto">
@@ -406,7 +406,7 @@ watch(() => store.user, (val) => {
               </div>
             </div>
 
-            <div class="border-t-2 border-neutral-900 dark:border-neutral-100 p-4 bg-neutral-50 dark:bg-neutral-900 flex items-center gap-4">
+            <div class="border-t border-neutral-200 dark:border-neutral-800/50 p-4 bg-neutral-50/50 dark:bg-neutral-900 flex items-center gap-4">
               <button
                 @click="openDetail(item)"
                 class="btn btn-secondary flex-1 py-2 text-sm"
@@ -415,7 +415,7 @@ watch(() => store.user, (val) => {
               </button>
               <button
                 @click="copyText(item.prompt)"
-                class="btn btn-primary flex-1 py-2 text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]"
+                class="btn btn-primary flex-1 py-2 text-sm shadow-sm"
               >
                 {{ t('common.submit') === '提交' ? '复制' : 'Copy' }}
               </button>
@@ -427,11 +427,11 @@ watch(() => store.user, (val) => {
 
     <!-- Detail Modal -->
     <div v-if="showDetailModal && selectedPrompt" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-      <div class="absolute inset-0 bg-neutral-900/80 backdrop-blur-sm" @click="showDetailModal = false"></div>
-      <div class="relative w-full max-w-5xl bg-white dark:bg-neutral-900 border-4 border-neutral-900 dark:border-neutral-100 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] max-h-[90vh] overflow-hidden flex flex-col">
+      <div class="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm transition-opacity" @click="showDetailModal = false"></div>
+      <div class="relative w-full max-w-5xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col transform transition-all">
 
         <!-- Modal Header with Close -->
-        <div class="flex items-center justify-between p-6 border-b-2 border-neutral-100 dark:border-neutral-800 shrink-0">
+        <div class="flex items-center justify-between p-6 border-b border-neutral-200 dark:border-neutral-800 shrink-0">
            <h2 class="text-2xl font-black truncate flex-1 pr-4">{{ selectedPrompt.title }}</h2>
            <button @click="showDetailModal = false" class="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full transition-colors">
               <X class="w-6 h-6" />
@@ -442,7 +442,7 @@ watch(() => store.user, (val) => {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-8 h-full">
             <!-- Left: Image & Meta -->
             <div class="space-y-6">
-               <div class="w-full bg-neutral-100 dark:bg-neutral-800 border-2 border-neutral-900 dark:border-neutral-700 aspect-square sm:aspect-video md:aspect-auto md:h-[400px] flex items-center justify-center overflow-hidden relative">
+               <div class="w-full bg-neutral-100 dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 aspect-square sm:aspect-video md:aspect-auto md:h-[400px] flex items-center justify-center overflow-hidden relative">
                   <img v-if="selectedPrompt.image" :src="selectedPrompt.image" class="w-full h-full object-contain bg-neutral-950/5" />
                   <div v-else class="text-neutral-300 dark:text-neutral-700">
                      <ImageIcon class="w-20 h-20" />
@@ -477,7 +477,7 @@ watch(() => store.user, (val) => {
                     <span
                       v-for="t in selectedPrompt.tags"
                       :key="t"
-                      class="px-3 py-1 border border-neutral-900 dark:border-neutral-100 text-xs font-bold uppercase hover:bg-neutral-900 hover:text-white dark:hover:bg-white dark:hover:text-neutral-900 transition-colors cursor-default"
+                      class="px-3 py-1 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 text-xs font-semibold rounded-lg hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors cursor-default"
                     >
                       #{{ t }}
                     </span>
@@ -513,7 +513,7 @@ watch(() => store.user, (val) => {
                   </button>
                   <button
                     @click="copyText(selectedPrompt.prompt)"
-                    class="btn btn-primary px-6 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+                    class="btn btn-primary px-6 py-3"
                   >
                     {{ t('share.copy_prompt') }}
                   </button>
@@ -526,9 +526,9 @@ watch(() => store.user, (val) => {
 
     <!-- Submit Modal -->
     <div v-if="showSubmitModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-      <div class="absolute inset-0 bg-neutral-900/80 backdrop-blur-sm" @click="showSubmitModal = false"></div>
-      <div class="relative w-full max-w-5xl bg-white dark:bg-neutral-900 border-4 border-neutral-900 dark:border-neutral-100 p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] max-h-[95vh] overflow-y-auto">
-        <h2 class="text-2xl font-black mb-6 uppercase tracking-tight">{{ t('share.submit_title') }}</h2>
+      <div class="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm transition-opacity" @click="showSubmitModal = false"></div>
+      <div class="relative w-full max-w-5xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-8 shadow-2xl max-h-[95vh] overflow-y-auto">
+        <h2 class="text-2xl font-bold mb-6 tracking-tight">{{ t('share.submit_title') }}</h2>
 
         <form @submit.prevent="handleSubmit" class="flex flex-col gap-6">
           <!-- Title (Full Width) -->
@@ -628,7 +628,7 @@ watch(() => store.user, (val) => {
             </div>
           </div>
 
-          <div class="mt-4 flex justify-end gap-4 border-t-2 border-neutral-100 dark:border-neutral-800 pt-6">
+          <div class="mt-4 flex justify-end gap-4 border-t border-neutral-200 dark:border-neutral-800 pt-6">
             <button
               type="button"
               @click="handleSaveDraft(false)"
@@ -647,7 +647,7 @@ watch(() => store.user, (val) => {
             </button>
             <button
               type="submit"
-              class="btn btn-primary px-8 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+              class="btn btn-primary px-8 py-3"
             >
               {{ t('share.submit_review') }}
             </button>
@@ -658,8 +658,8 @@ watch(() => store.user, (val) => {
     </div>
 
     <!-- Drafts Modal -->
-    <div v-if="showDraftsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col border-2 border-neutral-900 dark:border-neutral-100">
+    <div v-if="showDraftsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/60 backdrop-blur-sm transition-opacity">
+      <div class="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col border border-neutral-200 dark:border-neutral-800">
           <div class="p-6 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
                <h2 class="text-2xl font-black uppercase">{{ t('common.draft_box') }}</h2>
                <button @click="showDraftsModal = false" class="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-full"><X class="w-6 h-6"/></button>
