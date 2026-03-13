@@ -102,8 +102,39 @@
               </div>
             </section>
 
-            <!-- 定制预选区 -->
+            <!-- 实用工具 (Compact Row) -->
             <section class="card p-5">
+              <div class="flex items-center justify-between border-b-2 border-primary-500 pb-2 mb-4">
+                 <h2 class="text-base font-black tracking-wide uppercase">格式工具</h2>
+                 <div class="flex items-center gap-2">
+                   <select v-model="formatToolMode" class="input-field py-1 px-2 h-7 text-xs flex-shrink-0 w-24 bg-white/50 dark:bg-neutral-900/50">
+                     <option value="anima">Anima格式</option>
+                     <option value="custom">?????</option>
+                   </select>
+                   <input v-if="formatToolMode === 'custom'" v-model="customFormatToolString" type="text" class="input-field py-1 px-2 h-7 text-xs w-32 font-mono" placeholder="模板: {tag}" />
+                 </div>
+              </div>
+              <div class="text-[10px] text-neutral-400 mb-3 -mt-2">
+                <span v-if="formatToolMode === 'anima'">Anima????? `@artist \(tag\),` ?????????????????</span>
+                <span v-else>???????? {tag} ????????????????</span>
+              </div>
+              <div class="flex items-stretch gap-4 h-24">
+                <textarea v-model="rawPromptInput" class="input-field flex-1 h-full p-2 text-xs font-mono resize-none leading-relaxed" placeholder="粘贴凌乱画师串如: a, b, c"></textarea>
+                <div class="flex flex-col gap-2 w-20 flex-shrink-0">
+                   <button @click="processPrompt" class="btn btn-primary flex-1 text-xs py-1 px-0 shadow-none">处理</button>
+                   <button @click="rawPromptInput = ''; processedPromptOutput = ''" class="btn btn-secondary flex-1 text-xs py-1 px-0">清空</button>
+                </div>
+                <div class="flex-1 relative">
+                  <textarea v-model="processedPromptOutput" readonly class="input-field w-full h-full p-2 text-xs font-mono resize-none leading-relaxed bg-neutral-50 dark:bg-neutral-950 focus:ring-0 cursor-copy" placeholder="结果..."></textarea>
+                  <button v-if="processedPromptOutput" @click="copyProcessedPrompt" class="absolute top-1 right-1 p-1 bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded shadow-sm text-neutral-600 dark:text-neutral-300 transition-colors" title="复制">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <!-- 定制预选区 -->
+            <section class="card p-5 relative overflow-visible z-20">
               <div class="flex items-center justify-between border-b-2 border-primary-500 pb-2 mb-4">
                  <h2 class="text-base font-black tracking-wide uppercase">搜索与预选</h2>
                  <span class="text-[10px] text-neutral-400">将包含在每次生成中</span>
@@ -127,7 +158,7 @@
 
                 <!-- 联想菜单 -->
                 <transition enter-active-class="transition duration-100 ease-out" enter-from-class="transform scale-y-95 opacity-0" enter-to-class="transform scale-y-100 opacity-100" leave-active-class="transition duration-75 ease-in" leave-from-class="transform scale-y-100 opacity-100" leave-to-class="transform scale-y-95 opacity-0">
-                  <ul v-if="suggestions.length && dropdownOpen" class="absolute left-0 right-0 top-full mt-2 z-50 border border-neutral-200 dark:border-neutral-800 rounded-xl bg-white/95 backdrop-blur-md dark:bg-neutral-900/95 shadow-soft-lg max-h-[250px] overflow-y-auto">
+                  <ul v-if="suggestions.length && dropdownOpen" class="absolute left-0 right-0 top-full mt-2 z-[80] border border-neutral-200 dark:border-neutral-800 rounded-xl bg-white/95 backdrop-blur-md dark:bg-neutral-900/95 shadow-soft-lg max-h-[250px] overflow-y-auto">
                     <li v-for="(s, i) in suggestions" :key="s.name" @mouseenter="activeIndex = i" @click.stop="!isPreselected(s.name) && selectSuggestion(s)" class="px-4 py-2.5 border-b border-neutral-100 dark:border-neutral-800/50 last:border-0 cursor-pointer flex justify-between items-center text-sm transition-colors" :class="[i === activeIndex ? 'bg-primary-50 dark:bg-neutral-800' : '', isPreselected(s.name) ? 'opacity-50 grayscale' : '']">
                       <div class="truncate">
                         <span class="font-bold" v-html="renderHighlightedName(s.name)"></span>
@@ -137,37 +168,6 @@
                     </li>
                   </ul>
                 </transition>
-              </div>
-            </section>
-
-            <!-- 实用工具 (Compact Row) -->
-            <section class="card p-5">
-              <div class="flex items-center justify-between border-b-2 border-primary-500 pb-2 mb-4">
-                 <h2 class="text-base font-black tracking-wide uppercase">格式工具</h2>
-                 <div class="flex items-center gap-2">
-                   <select v-model="formatToolMode" class="input-field py-1 px-2 h-7 text-xs flex-shrink-0 w-24 bg-white/50 dark:bg-neutral-900/50">
-                     <option value="anima">Anima格式</option>
-                     <option value="custom">自定义格式</option>
-                   </select>
-                   <input v-if="formatToolMode === 'custom'" v-model="customFormatToolString" type="text" class="input-field py-1 px-2 h-7 text-xs w-32 font-mono" placeholder="模板: {tag}" />
-                 </div>
-              </div>
-              <div class="text-[10px] text-neutral-400 mb-3 -mt-2">
-                <span v-if="formatToolMode === 'anima'">Anima模式：将逗号分隔的标签转换为带 @ 前缀并保留末尾逗号的格式。</span>
-                <span v-else>自定义模式：使用 {tag} 作为占位符替换每个拆分出的标签。</span>
-              </div>
-              <div class="flex items-stretch gap-4 h-24">
-                <textarea v-model="rawPromptInput" class="input-field flex-1 h-full p-2 text-xs font-mono resize-none leading-relaxed" placeholder="粘贴凌乱画师串如: a, b, c"></textarea>
-                <div class="flex flex-col gap-2 w-20 flex-shrink-0">
-                   <button @click="processPrompt" class="btn btn-primary flex-1 text-xs py-1 px-0 shadow-none">处理</button>
-                   <button @click="rawPromptInput = ''; processedPromptOutput = ''" class="btn btn-secondary flex-1 text-xs py-1 px-0">清空</button>
-                </div>
-                <div class="flex-1 relative">
-                  <textarea v-model="processedPromptOutput" readonly class="input-field w-full h-full p-2 text-xs font-mono resize-none leading-relaxed bg-neutral-50 dark:bg-neutral-950 focus:ring-0 cursor-copy" placeholder="结果..."></textarea>
-                  <button v-if="processedPromptOutput" @click="copyProcessedPrompt" class="absolute top-1 right-1 p-1 bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded shadow-sm text-neutral-600 dark:text-neutral-300 transition-colors" title="复制">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                  </button>
-                </div>
               </div>
             </section>
 
@@ -437,16 +437,28 @@ const processedPromptOutput = ref('')
 const formatToolMode = ref<'anima' | 'custom'>('anima')
 const customFormatToolString = ref('@{tag},')
 
+function normalizeAnimaTag(tag: string) {
+  return tag
+    .trim()
+    .replace(/^@+/, '')
+    .replace(/\\\(/g, '(')
+    .replace(/\\\)/g, ')')
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)')
+}
+
 function processPrompt() {
   if (!rawPromptInput.value.trim()) {
     processedPromptOutput.value = ''
     return
   }
-  // Split by english or chinese commas, or newlines
-  const parts = rawPromptInput.value.split(/[,，\n]/).map(s => s.trim()).filter(Boolean)
-  
+  const parts = rawPromptInput.value.split(/[\n,，]+/).map(s => s.trim()).filter(Boolean)
+
+
   if (formatToolMode.value === 'anima') {
-    const result = parts.map(tag => tag.startsWith('@') ? tag : `@${tag}`)
+    const result = parts.map(tag => `@${normalizeAnimaTag(tag)}`)
     processedPromptOutput.value = result.join(', ') + ','
   } else {
     const template = customFormatToolString.value || '{tag}'
