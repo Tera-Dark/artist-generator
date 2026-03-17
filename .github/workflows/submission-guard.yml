@@ -1,0 +1,124 @@
+name: Submission Guard
+
+on:
+  issues:
+    types: [opened, edited, reopened, labeled]
+
+jobs:
+  guard-submission:
+    if: github.event.issue.pull_request == null
+    runs-on: ubuntu-latest
+
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - name: Review submission payload
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue
+            const currentLabels = issue.labels.map((label) => typeof label === 'string' ? label : label.name)
+            if (!currentLabels.includes('submission') && !currentLabels.includes('draft')) {
+              core.info('Issue is not a prompt submission.')
+              return
+            }
+
+            const marker = '<!-- codex:submission-guard -->'
+            const body = issue.body || ''
+            const match = body.match(/```json([\s\S]*?)```/)
+            const findings = []
+
+            let parsed = null
+            if (!match || !match[1]) {
+              findings.push('未找到 JSON 数据块，请使用标准投稿格式。')
+            } else {
+              try {
+                parsed = JSON.parse(match[1])
+              } catch (error) {
+                findings.push('JSON 解析失败，请检查逗号、引号和字段格式。')
+              }
+            }
+
+            const placeholderPatterns = [/^test/i, /^测试/, /^无题$/, /^untitled$/i]
+            const normalize = (value) => String(value || '').replace(/\s+/g, ' ').trim()
+
+            if (parsed) {
+              const title = normalize(parsed.title)
+              const prompt = String(parsed.prompt || '').trim()
+              const model = normalize(parsed.model)
+              const tags = Array.isArray(parsed.tags) ? parsed.tags.map((tag) => normalize(tag)).filter(Boolean) : []
+              const image = normalize(parsed.image)
+
+              if (title.length < 2) findings.push('标题至少需要 2 个字符。')
+              if (prompt.length < 12) findings.push('Prompt 内容太短，建议补充完整。')
+              if (!model) findings.push('请填写适用模型。')
+              if (tags.length === 0) findings.push('至少添加 1 个标签。')
+              if (tags.length > 6) findings.push('标签过多，建议控制在 6 个以内。')
+              if (placeholderPatterns.some((pattern) => pattern.test(title))) {
+                findings.push('标题看起来像测试或占位文案，建议改成正式标题。')
+              }
+              if (image && !/^https?:\/\//i.test(image)) {
+                findings.push('图片链接建议使用可公开访问的 http(s) 地址。')
+              }
+            }
+
+            const repo = context.repo
+            const ensureLabel = async (name, color, description) => {
+              try {
+                await github.rest.issues.getLabel({ ...repo, name })
+              } catch (error) {
+                await github.rest.issues.createLabel({ ...repo, name, color, description })
+              }
+            }
+
+            await ensureLabel('needs-fix', 'D73A49', 'Submission requires fixes before review')
+            await ensureLabel('ready-for-review', '0E8A16', 'Submission passed automatic checks')
+
+            const nextLabels = currentLabels.filter((label) => !['needs-fix', 'ready-for-review'].includes(label))
+            nextLabels.push(findings.length ? 'needs-fix' : 'ready-for-review')
+
+            await github.rest.issues.update({
+              ...repo,
+              issue_number: issue.number,
+              labels: [...new Set(nextLabels)],
+            })
+
+            const summaryLines = findings.length
+              ? findings.map((item) => `- ${item}`)
+              : ['- 自动检查通过，可以进入人工审核。']
+
+            const commentBody = `${marker}
+
+            ## 自动投稿检查
+
+            ${findings.length ? '检测到以下需要处理的问题：' : '当前投稿结构正常。'}
+
+            ${summaryLines.join('\n')}
+
+            > 这条评论会在你编辑投稿内容后自动更新。`
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              ...repo,
+              issue_number: issue.number,
+              per_page: 100,
+            })
+
+            const existingComment = comments.find((comment) =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker)
+            )
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                ...repo,
+                comment_id: existingComment.id,
+                body: commentBody,
+              })
+            } else {
+              await github.rest.issues.createComment({
+                ...repo,
+                issue_number: issue.number,
+                body: commentBody,
+              })
+            }

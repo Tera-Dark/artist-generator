@@ -36,6 +36,78 @@ export interface SharedPrompt {
   _issueNumber?: number // Internal for GitHub Issues
   _chunkPath?: string // Internal for Chunked Storage
   _updatedAt?: number // Internal for Local Drafts
+  _profileId?: string // Internal for Offline Profiles
+  _draftLabel?: string // Internal for Draft Ownership Label
+  _validation?: PromptValidationSummary // Internal for Moderation UI
+  _duplicateMatches?: DuplicatePromptMatch[] // Internal for Moderation UI
+}
+
+export interface PromptValidationIssue {
+  code: string
+  severity: 'error' | 'warning'
+  message: string
+}
+
+export interface DuplicatePromptMatch {
+  id: string
+  title: string
+  score: number
+  source: 'published' | 'submission'
+}
+
+export interface PromptValidationSummary {
+  issues: PromptValidationIssue[]
+  fingerprint: string
+  normalizedTitle: string
+}
+
+export interface PromptTagStat {
+  tag: string
+  count: number
+}
+
+export interface FeaturedPromptsMeta {
+  manualIds: string[]
+  items: SharedPrompt[]
+  updatedAt: number
+}
+
+export interface OfflineProfile {
+  id: string
+  name: string
+  createdAt: number
+  updatedAt: number
+}
+
+export interface OfflineArtistSnapshot {
+  name: string
+  other_names?: string[]
+  post_count?: number
+  danbooru_url?: string
+}
+
+export interface OfflineCollectionPromptItem {
+  promptId: string
+  addedAt: number
+  snapshot: SharedPrompt
+}
+
+export interface OfflineCollectionArtistItem {
+  artistName: string
+  addedAt: number
+  snapshot: OfflineArtistSnapshot
+}
+
+export interface OfflineCollection {
+  id: string
+  profileId: string
+  name: string
+  description?: string
+  createdAt: number
+  updatedAt: number
+  isDefault?: boolean
+  prompts: OfflineCollectionPromptItem[]
+  artists: OfflineCollectionArtistItem[]
 }
 
 export interface ChunkIndex {

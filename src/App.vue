@@ -1,21 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { useGeneratorStore } from '@/stores/generator'
+import { applyThemePreference, getStoredThemePreference } from '@/services/preferences'
 
 const store = useGeneratorStore()
-
-const theme = ref<'light' | 'dark'>('light')
-
-function applyTheme(next: 'light' | 'dark') {
-  theme.value = next
-  const isDark = next === 'dark'
-  document.documentElement.classList.toggle('dark', isDark)
-  localStorage.setItem('theme', next)
-}
-
-function toggleTheme() {
-  applyTheme(theme.value === 'dark' ? 'light' : 'dark')
-}
+let themeMediaQuery: MediaQueryList | null = null
 
 function handleKey(e: KeyboardEvent) {
   if (e.key === 'Escape' && store.toasts.length) {
@@ -24,19 +13,23 @@ function handleKey(e: KeyboardEvent) {
   }
 }
 
-onMounted(() => {
-  store.initAuth()
-  const saved = localStorage.getItem('theme') as 'light' | 'dark' | null
-  if (saved === 'light' || saved === 'dark') {
-    applyTheme(saved)
-  } else {
-    const prefersDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-    applyTheme(prefersDark ? 'dark' : 'light')
+function handleSystemThemeChange() {
+  if (getStoredThemePreference() === 'system') {
+    applyThemePreference('system')
   }
+}
+
+onMounted(() => {
+  applyThemePreference(getStoredThemePreference())
+  store.initAuth()
+
+  themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+  themeMediaQuery.addEventListener('change', handleSystemThemeChange)
   window.addEventListener('keydown', handleKey)
 })
 
 onUnmounted(() => {
+  themeMediaQuery?.removeEventListener('change', handleSystemThemeChange)
   window.removeEventListener('keydown', handleKey)
 })
 </script>

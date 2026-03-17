@@ -1,6 +1,7 @@
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
+@import './ui-system.css';
 
 /* Custom Components - 现代轻简透明拟物风 (Modern Elegant) */
 @layer components {
@@ -11,6 +12,14 @@
 
   .section-spacing {
     @apply py-16 md:py-24;
+  }
+
+  .heading-xl {
+    @apply text-4xl md:text-5xl font-black tracking-tight text-neutral-900 dark:text-white;
+  }
+
+  .text-muted {
+    @apply text-neutral-500 dark:text-neutral-400;
   }
 
   .btn {
@@ -31,6 +40,10 @@
 
   .card-hover {
     @apply hover:-translate-y-1 hover:shadow-soft-lg dark:hover:border-neutral-700;
+  }
+
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-soft-lg dark:hover:border-neutral-700;
   }
 
   .preset-card {
@@ -69,32 +82,42 @@
     @apply border-l-4 border-l-yellow-500;
   }
 
-  /* App Shell & Navigation */
+  /* App Shell */
   .app-shell {
     @apply min-h-screen bg-neutral-50 text-neutral-800 font-sans tracking-tight dark:bg-neutral-950 dark:text-neutral-100 selection:bg-primary-200 selection:text-primary-900 dark:selection:bg-primary-900/50 dark:selection:text-primary-100;
   }
 
-  .app-nav {
-    @apply sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-neutral-200/80 dark:bg-neutral-950/80 dark:border-neutral-800/80 transition-colors duration-300;
+  .divider {
+    @apply border-t border-neutral-200 dark:border-neutral-800;
   }
 
-  .nav-container {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between;
+  .fade-in-up {
+    animation: fade-in-up 0.45s ease-out;
   }
 
-  .nav-brand {
-    @apply flex items-center gap-2 font-black tracking-tight text-lg text-neutral-900 dark:text-white;
+  .fade-in {
+    animation: fade-in 0.2s ease-out;
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
   }
 
-  .nav-links {
-    @apply hidden md:flex items-center gap-6 text-sm font-medium;
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
   }
 
-  .nav-link {
-    @apply text-neutral-500 hover:text-neutral-900 transition-colors duration-200 dark:text-neutral-400 dark:hover:text-white relative;
-  }
-
-  .nav-link-active {
-    @apply text-primary-600 dark:text-primary-400 font-semibold;
+  to {
+    opacity: 1;
   }
 }

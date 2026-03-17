@@ -5,18 +5,41 @@
 
     <!-- 主体：两步流程 -->
     <main class="section py-6 fade-in-up">
-      <div class="container-responsive max-w-7xl mx-auto">
+      <div class="page-stack">
+        <section class="hero-panel hero-panel-accent">
+          <div class="hero-layout lg:grid-cols-[1.15fr_0.85fr]">
+            <div>
+              <div class="hero-eyebrow">Workspace</div>
+              <h1 class="hero-title">工作区</h1>
+              <p class="hero-body">把生成配置、预选画师、格式工具和结果输出收在同一条工作流里，专注快速试错与产出。</p>
+            </div>
+            <div class="metric-grid">
+              <div class="metric-tile">
+                <div class="metric-label">生成模式</div>
+                <div class="metric-value text-xl">{{ selectedMode }}</div>
+              </div>
+              <div class="metric-tile">
+                <div class="metric-label">预选数量</div>
+                <div class="metric-value text-xl">{{ preselectedNames.length }}</div>
+              </div>
+              <div class="metric-tile">
+                <div class="metric-label">画师库</div>
+                <div class="metric-value text-xl">{{ store.artists.length ? '已就绪' : '加载中' }}</div>
+              </div>
+            </div>
+          </div>
+        </section>
         
         <!-- 页面网格：左控制面，右结果固定 -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div class="workspace-grid">
           
           <!-- 左侧：总控台 -->
-          <div class="lg:col-span-8 flex flex-col gap-6">
+          <div class="workspace-main">
 
             <!-- 核心配置区 -->
-            <section class="card p-5">
-              <div class="flex items-center justify-between border-b-2 border-primary-500 pb-2 mb-4">
-                <h2 class="text-base font-black tracking-wide uppercase">核心配置</h2>
+            <section class="section-shell-tight">
+              <div class="section-heading">
+                <h2 class="section-heading-title">核心配置</h2>
               </div>
               
               <!-- 模式选择 (Compact Tabs) -->
@@ -34,7 +57,7 @@
               </div>
 
               <!-- 数量与快速过滤 (Compact Row) -->
-              <div class="flex flex-wrap items-center gap-6 bg-neutral-50 dark:bg-neutral-900/50 p-3 border border-neutral-200 dark:border-neutral-800 rounded">
+              <div class="mini-toolbar">
                 <div class="flex items-center gap-3">
                   <label class="text-xs font-bold text-neutral-500 uppercase">生成数量</label>
                   <div class="flex items-center">
@@ -103,9 +126,9 @@
             </section>
 
             <!-- 实用工具 (Compact Row) -->
-            <section class="card p-5">
-              <div class="flex items-center justify-between border-b-2 border-primary-500 pb-2 mb-4">
-                 <h2 class="text-base font-black tracking-wide uppercase">格式工具</h2>
+            <section class="section-shell-tight">
+              <div class="section-heading">
+                 <h2 class="section-heading-title">格式工具</h2>
                  <div class="flex items-center gap-2">
                    <select v-model="formatToolMode" class="input-field py-1 px-2 h-7 text-xs flex-shrink-0 w-24 bg-white/50 dark:bg-neutral-900/50">
                      <option value="anima">Anima格式</option>
@@ -134,9 +157,9 @@
             </section>
 
             <!-- 定制预选区 -->
-            <section class="card p-5 relative overflow-visible z-20">
-              <div class="flex items-center justify-between border-b-2 border-primary-500 pb-2 mb-4">
-                 <h2 class="text-base font-black tracking-wide uppercase">搜索与预选</h2>
+            <section class="section-shell-tight relative overflow-visible z-20">
+              <div class="section-heading">
+                 <h2 class="section-heading-title">搜索与预选</h2>
                  <span class="text-[10px] text-neutral-400">将包含在每次生成中</span>
               </div>
               
@@ -174,12 +197,12 @@
           </div>
 
           <!-- 右侧：固定操作台 -->
-          <div class="lg:col-span-4 lg:sticky lg:top-24 flex flex-col gap-4">
+          <div class="workspace-side">
             
-            <button @click="generate" :disabled="store.isLoading" class="btn btn-primary w-full h-16 text-lg tracking-widest font-black active:scale-95 transition-all group overflow-hidden relative shadow-soft-lg hover:shadow-xl dark:shadow-soft-dark dark:hover:shadow-soft-dark-lg">
+            <button @click="generate" :disabled="isGenerating || store.isArtistsLoading" class="btn btn-primary w-full h-16 text-lg tracking-widest font-black active:scale-95 transition-all group overflow-hidden relative shadow-soft-lg hover:shadow-xl dark:shadow-soft-dark dark:hover:shadow-soft-dark-lg disabled:cursor-not-allowed disabled:opacity-70">
               <span class="absolute inset-0 w-full h-full bg-white/20 -translate-x-full group-hover:animate-[shimmer_1s_infinite]"></span>
-              <span v-if="!store.isLoading" class="relative z-10">一键生成</span>
-              <span v-else class="relative z-10 flex items-center justify-center gap-2"><svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>处理中...</span>
+              <span v-if="!isGenerating && !store.isArtistsLoading" class="relative z-10">一键生成</span>
+              <span v-else class="relative z-10 flex items-center justify-center gap-2"><svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>{{ store.isArtistsLoading ? '加载画师库...' : '处理中...' }}</span>
             </button>
 
             <div class="card p-0 flex flex-col flex-1 min-h-[300px] border border-neutral-200 dark:border-neutral-800 shadow-soft-lg overflow-hidden">
@@ -191,7 +214,7 @@
             </div>
 
             <!-- 热词面板 (Ultra Compact Slider/Chips) -->
-            <div class="card p-4">
+            <div class="panel-card p-4">
                <div class="flex items-center justify-between mb-3 text-xs font-bold text-neutral-500">
                   <span>快速随选推荐</span>
                   <button @click="refreshRecommendations" class="hover:text-primary-600"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button>
@@ -222,6 +245,7 @@ const {
   enableCustomFormat,
   artistCount,
   finalResult,
+  isGenerating,
   postCountFilterMode,
   postCountThreshold,
   creativeBracketStyle,
@@ -264,10 +288,8 @@ const onDocClick = (e: MouseEvent) => {
 }
 
 onMounted(async () => {
-  // 懒加载：首次进入不主动加载，避免首屏压力
-  // 若已有缓存则无需加载
   if (!store.artists.length) {
-    // 可选：延迟到用户交互时再触发
+    await store.loadArtists({ silent: true })
   }
   // 绑定全局点击事件
   document.addEventListener('click', onDocClick)
@@ -287,8 +309,8 @@ watch(artistQuery, (val) => {
 
 // 当用户开始输入时按需加载 artists
 watch(debouncedQuery, async (val) => {
-  if (val.trim() && !store.artists.length && !store.isLoading) {
-    await store.loadArtists()
+  if (val.trim() && !store.artists.length && !store.isArtistsLoading) {
+    await store.loadArtists({ silent: true })
   }
 })
 

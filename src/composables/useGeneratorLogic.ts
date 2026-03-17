@@ -1,6 +1,5 @@
 import { ref, watch } from 'vue'
 import { useGeneratorStore } from '@/stores/generator'
-import { useI18n } from 'vue-i18n'
 
 export type Artist = { name: string; other_names?: string[]; post_count?: number }
 export type BracketStyle = 'paren' | 'curly' | 'square'
@@ -11,13 +10,13 @@ const LS_KEY = 'artist_string_generator_v1'
 
 export function useGeneratorLogic() {
     const store = useGeneratorStore()
-    const { t } = useI18n()
 
     // --- State ---
     const selectedMode = ref<GeneratorMode>('standard')
     const enableCustomFormat = ref(false)
     const artistCount = ref(3)
     const finalResult = ref('')
+    const isGenerating = ref(false)
 
     // Filter Settings
     const postCountFilterMode = ref<FilterMode>('none')
@@ -145,47 +144,55 @@ export function useGeneratorLogic() {
     }
 
     async function generate() {
-        if (!store.artists.length && !store.isLoading) {
-            store.loadArtists()
-        }
+        if (isGenerating.value) return
 
-        // Allow slight delay if loading, but typically we proceed with what we have or partial
-        // For now, assume store might be empty initially but populated async
+        isGenerating.value = true
 
-        const pool = store.artists.length ? store.artists : [
-            // Fallback / Mock data if store is empty and offline (rare)
-            { name: 'test_artist_1', other_names: ['test1'], post_count: 100 },
-            { name: 'test_artist_2', other_names: ['test2'], post_count: 200 },
-            { name: 'test_artist_3', other_names: ['test3'], post_count: 300 },
-        ]
-
-        const target = Math.max(1, Math.min(20, artistCount.value))
-        // Take all preselected, slice if they exceed target?
-        // Logic in original was: take first N preselected where N = target.
-        // If preselected < target, fill with random.
-
-        const baseNames = preselectedNames.value.slice(0, target)
-        const exclude = new Set<string>(baseNames)
-        const need = target - baseNames.length
-
-        const randoms = need > 0 ? sampleRandomArtists(pool, need, exclude) : []
-        const allNames = [...baseNames, ...randoms]
-
-        finalResult.value = formatOutput(allNames)
-
-        // Optional: Toast notification
         try {
+            if (!store.artists.length) {
+                await store.loadArtists({ silent: true })
+            }
+
+            if (!store.artists.length) {
+                store.addToast('error', '暂无可用数据', '画师库尚未加载完成，请稍后重试', 2500)
+                return
+            }
+
+            const target = Math.max(1, Math.min(20, artistCount.value))
+            const baseNames = preselectedNames.value.slice(0, target)
+            const exclude = new Set<string>(baseNames)
+            const need = target - baseNames.length
+
+            const randoms = need > 0 ? sampleRandomArtists(store.artists, need, exclude) : []
+            const allNames = [...baseNames, ...randoms]
+
+            if (!allNames.length) {
+                store.addToast('warning', '没有匹配结果', '请调整筛选条件或减少预选限制', 2500)
+                return
+            }
+
+            finalResult.value = formatOutput(allNames)
+
+            if (allNames.length < target) {
+                store.addToast('warning', '结果不足', `仅生成了 ${allNames.length} 个符合条件的画师`, 2200)
+                return
+            }
+
             store.addToast('success', '生成成功', '已生成画师串，可复制使用', 2000)
-        } catch { }
+        } finally {
+            isGenerating.value = false
+        }
     }
 
-    function copyOutput() {
+    async function copyOutput() {
         if (!finalResult.value) return
 
-        navigator.clipboard?.writeText(finalResult.value)
         try {
+            await navigator.clipboard?.writeText(finalResult.value)
             store.addToast('success', '已复制', '画师串已复制到剪贴板', 1800)
-        } catch { }
+        } catch {
+            store.addToast('error', '复制失败', '请手动复制生成结果', 1800)
+        }
     }
 
     // --- Persistence ---
@@ -259,6 +266,7 @@ export function useGeneratorLogic() {
         enableCustomFormat,
         artistCount,
         finalResult,
+        isGenerating,
         postCountFilterMode,
         postCountThreshold,
         creativeBracketStyle,

@@ -1,4 +1,5 @@
 import { createI18n } from 'vue-i18n'
+import { getStoredLocale } from '@/services/preferences'
 
 const messages = {
     zh: {
@@ -251,7 +252,7 @@ const messages = {
 
 const i18n = createI18n({
     legacy: false, // Use Composition API mode
-    locale: 'zh', // Default
+    locale: getStoredLocale(),
     fallbackLocale: 'en',
     messages
 })

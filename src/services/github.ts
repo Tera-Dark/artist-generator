@@ -1,6 +1,7 @@
 import { Octokit } from '@octokit/rest'
 import { dataStorage } from '@/services/dataStorage'
-import type { SharedPrompt, ChunkIndex, GithubUser } from '@/types'
+import type { FeaturedPromptsMeta, SharedPrompt, ChunkIndex, GithubUser } from '@/types'
+import { sanitizePromptPayload, validatePromptPayload } from '@/utils/promptSubmission'
 
 export class GitHubService {
     private octokit: Octokit | null = null
@@ -68,6 +69,12 @@ export class GitHubService {
     // Admin: Approve (Merge to Chunked Storage + Close Issue)
     async approveSubmission(issueNumber: number, promptData: SharedPrompt) {
         if (!this.octokit) throw new Error('Admin not logged in')
+        const sanitizedPrompt = sanitizePromptPayload(promptData) as SharedPrompt
+        const validation = validatePromptPayload(sanitizedPrompt)
+        const hardErrors = validation.issues.filter((issue) => issue.severity === 'error')
+        if (hardErrors.length) {
+            throw new Error(`Prompt validation failed: ${hardErrors.map((issue) => issue.message).join('; ')}`)
+        }
 
         // Constants
         const { CHUNK_SIZE, INDEX_PATH, BASE_PATH } = dataStorage.config
@@ -137,8 +144,8 @@ export class GitHubService {
 
                 // 3. Add Data to Chunk
                 // Ensure uniqueness in this chunk
-                if (!chunkContent.some((p) => p.id === promptData.id)) {
-                    chunkContent.unshift({ ...promptData, status: 'published' as const })
+                if (!chunkContent.some((p) => p.id === sanitizedPrompt.id)) {
+                    chunkContent.unshift({ ...sanitizedPrompt, status: 'published' as const })
                 }
 
                 // 4. Commit Chunk
@@ -251,15 +258,16 @@ export class GitHubService {
     // Admin: Update Issue (Save Draft/Edit without Publishing)
     async updateIssue(issueNumber: number, data: SharedPrompt, labels?: string[]) {
         if (!this.octokit) throw new Error('Admin not logged in')
+        const sanitized = sanitizePromptPayload(data) as SharedPrompt
 
-        const title = `[Submission] ${data.title}`
+        const title = `[Submission] ${sanitized.title}`
         const body = `
 \`\`\`json
-${JSON.stringify(data, null, 2)}
+${JSON.stringify(sanitized, null, 2)}
 \`\`\`
 
 **Description:**
-${data.description}
+${sanitized.description}
 
 *Updated by Moderator*
 `.trim()
@@ -281,23 +289,24 @@ ${data.description}
 
     // Public: Generate Issue Link
     getSubmissionLink(data: SharedPrompt) {
+        const sanitized = sanitizePromptPayload(data) as SharedPrompt
         // If image is local blob/data, clear it so user knows to provide a real link
-        if (data.image && (data.image.startsWith('blob:') || data.image.startsWith('data:'))) {
-            data.image = ''
+        if (sanitized.image && (sanitized.image.startsWith('blob:') || sanitized.image.startsWith('data:'))) {
+            sanitized.image = ''
         }
 
-        const title = `[Submission] ${data.title}`
+        const title = `[Submission] ${sanitized.title}`
         const body = `
 ## Image
 p.s. Drag and drop your generated image here!
 *(The URL will appear below automatically, please copy it into the "image": "" field below if you want stricter control, but we will try to find it)*
 
 \`\`\`json
-${JSON.stringify(data, null, 2)}
+${JSON.stringify(sanitized, null, 2)}
 \`\`\`
 
 **Description:**
-${data.description}
+${sanitized.description}
 
 *Submitted via Artist Generator*
     `.trim()
@@ -307,20 +316,26 @@ ${data.description}
     // Public: Create Submission Issue (In-App)
     async submitIssue(data: SharedPrompt) {
         if (!this.octokit) throw new Error('Not logged in')
-
-        // If image is local blob/data, clear it so user knows to provide a real link
-        if (data.image && (data.image.startsWith('blob:') || data.image.startsWith('data:'))) {
-            data.image = ''
+        const sanitized = sanitizePromptPayload(data) as SharedPrompt
+        const validation = validatePromptPayload(sanitized)
+        const hardErrors = validation.issues.filter((issue) => issue.severity === 'error')
+        if (hardErrors.length) {
+            throw new Error(`Prompt validation failed: ${hardErrors.map((issue) => issue.message).join('; ')}`)
         }
 
-        const title = `[Submission] ${data.title}`
+        // If image is local blob/data, clear it so user knows to provide a real link
+        if (sanitized.image && (sanitized.image.startsWith('blob:') || sanitized.image.startsWith('data:'))) {
+            sanitized.image = ''
+        }
+
+        const title = `[Submission] ${sanitized.title}`
         const body = `
 \`\`\`json
-${JSON.stringify(data, null, 2)}
+${JSON.stringify(sanitized, null, 2)}
 \`\`\`
 
 **Description:**
-${data.description}
+${sanitized.description}
 
 *Submitted via Artist Generator*
     `.trim()
@@ -423,10 +438,11 @@ ${data.description}
     // Admin: Update Prompt (Edit)
     async updatePrompt(prompt: SharedPrompt) {
         if (!this.octokit) throw new Error('Admin not logged in')
-        const path = prompt._chunkPath || 'public/data/prompts.json'
+        const sanitized = sanitizePromptPayload(prompt) as SharedPrompt
+        const path = sanitized._chunkPath || 'public/data/prompts.json'
 
         // Clean internal props
-        const { _chunkPath, ...cleanPrompt } = prompt
+        const { _chunkPath, ...cleanPrompt } = sanitized
 
         const currentData = await this._fetchJson<SharedPrompt[]>(path)
         const content = currentData.content.map((p) => p.id === cleanPrompt.id ? { ...p, ...cleanPrompt, updated_at: Date.now() } : p)
@@ -438,6 +454,31 @@ ${data.description}
             message: `feat: update prompt ${prompt.title}`,
             content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
             sha: currentData.sha,
+            branch: this.branch
+        })
+    }
+
+    async updateFeaturedPrompts(meta: FeaturedPromptsMeta) {
+        if (!this.octokit) throw new Error('Admin not logged in')
+        const path = 'public/data/featured.json'
+
+        let currentSha: string | undefined
+        try {
+            const current = await this._fetchJson<FeaturedPromptsMeta | SharedPrompt[]>(path)
+            currentSha = current.sha
+        } catch (error: any) {
+            if (error?.status !== 404) {
+                throw error
+            }
+        }
+
+        await this.octokit.repos.createOrUpdateFileContents({
+            owner: this.owner,
+            repo: this.repo,
+            path,
+            message: `feat: update featured prompts (${meta.manualIds.length})`,
+            content: btoa(unescape(encodeURIComponent(JSON.stringify(meta, null, 2)))),
+            sha: currentSha,
             branch: this.branch
         })
     }

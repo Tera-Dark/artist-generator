@@ -1,4 +1,4 @@
-import type { SharedPrompt } from '@/types'
+import type { FeaturedPromptsMeta, PromptTagStat, SharedPrompt } from '@/types'
 
 const CHUNK_SIZE = 50
 const BASE_PATH = 'public/data'
@@ -14,14 +14,60 @@ export interface StorageIndex {
  * Uses a chunked strategy: index.json points to multiple chunk_X.json files
  */
 export const dataStorage = {
+    async getMetadataResource<T>(path: string, baseUrl: string = '', repoConfig?: { owner: string, repo: string, branch?: string, bustCache?: boolean }): Promise<T | null> {
+        try {
+            const cleanBase = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/'
+            const timestamp = repoConfig?.bustCache ? Date.now() : null
+            const owner = repoConfig?.owner || import.meta.env.VITE_REPO_OWNER
+            const repo = repoConfig?.repo || import.meta.env.VITE_REPO_NAME
+            const branch = repoConfig?.branch || 'main'
+            let rawBase = ''
+            let useRaw = false
+
+            if (owner && repo) {
+                useRaw = true
+                rawBase = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/public/`
+            }
+
+            const buildUrl = (base: string, resourcePath: string) => {
+                const url = `${base}${resourcePath}`
+                if (timestamp === null) return url
+                return `${url}?t=${timestamp}`
+            }
+
+            const fetchResource = async () => {
+                if (useRaw) {
+                    try {
+                        const res = await fetch(buildUrl(rawBase, path), {
+                            cache: timestamp === null ? 'default' : 'no-store'
+                        })
+                        if (res.ok) return res
+                    } catch {
+                        console.warn(`[DataStorage] Raw fetch failed for ${path}, falling back`)
+                    }
+                }
+                return fetch(buildUrl(cleanBase, path), {
+                    cache: timestamp === null ? 'default' : 'no-store'
+                })
+            }
+
+            const res = await fetchResource()
+            if (!res.ok) return null
+            return await res.json()
+        } catch (e) {
+            console.warn(`[DataStorage] Failed to load metadata resource ${path}`, e)
+            return null
+        }
+    },
+
     /**
      * Efficiently loads all shared prompts by fetching chunks in parallel
      * @param baseUrl - The base URL of the application (e.g. from import.meta.env.BASE_URL)
      */
-    async getAllPrompts(baseUrl: string = '', repoConfig?: { owner: string, repo: string, branch?: string }): Promise<SharedPrompt[]> {
+    async getAllPrompts(baseUrl: string = '', repoConfig?: { owner: string, repo: string, branch?: string, bustCache?: boolean }): Promise<SharedPrompt[]> {
         try {
             const cleanBase = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/'
-            const timestamp = Date.now() // Cache busting
+            const timestamp = repoConfig?.bustCache ? Date.now() : null
 
             // Config for Raw GitHub Fetching (Freshest Data)
             // Priority: Passed config > Env vars
@@ -40,16 +86,26 @@ export const dataStorage = {
             console.log(`[DataStorage] Loading prompts from ${cleanBase}`)
 
             // Helper to fetch with fallback
+            const buildUrl = (base: string, path: string) => {
+                const url = `${base}${path}`
+                if (timestamp === null) return url
+                return `${url}?t=${timestamp}`
+            }
+
             const fetchResource = async (path: string) => {
                 if (useRaw) {
                     try {
-                        const res = await fetch(`${rawBase}${path}?t=${timestamp}`)
+                        const res = await fetch(buildUrl(rawBase, path), {
+                            cache: timestamp === null ? 'default' : 'no-store'
+                        })
                         if (res.ok) return res
                     } catch {
                         console.warn(`[DataStorage] Raw fetch failed for ${path}, falling back`)
                     }
                 }
-                return fetch(`${cleanBase}${path}?t=${timestamp}`)
+                return fetch(buildUrl(cleanBase, path), {
+                    cache: timestamp === null ? 'default' : 'no-store'
+                })
             }
 
             // 1. Fetch Index
@@ -105,6 +161,15 @@ export const dataStorage = {
             console.error('Failed to load chunked data', e)
             return []
         }
+    },
+
+    async getFeaturedPrompts(baseUrl: string = '', repoConfig?: { owner: string, repo: string, branch?: string, bustCache?: boolean }): Promise<FeaturedPromptsMeta | null> {
+        return this.getMetadataResource<FeaturedPromptsMeta>('data/featured.json', baseUrl, repoConfig)
+    },
+
+    async getTagStats(baseUrl: string = '', repoConfig?: { owner: string, repo: string, branch?: string, bustCache?: boolean }): Promise<PromptTagStat[]> {
+        const data = await this.getMetadataResource<PromptTagStat[]>('data/tags.json', baseUrl, repoConfig)
+        return Array.isArray(data) ? data : []
     },
 
     /**

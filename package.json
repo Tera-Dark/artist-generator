@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
+    "content:check": "node scripts/content-pipeline.mjs --check",
+    "content:write": "node scripts/content-pipeline.mjs --write",
     "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
     "lint:eslint": "eslint . --fix",
     "lint": "run-s lint:*",

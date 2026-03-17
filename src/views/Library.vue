@@ -5,12 +5,34 @@
 
     <!-- 主体 -->
     <main class="section section-spacing">
-      <div class="container-responsive">
-        <h1 class="heading-xl mb-10">所有画师信息</h1>
+      <div class="page-stack">
+        <section class="hero-panel hero-panel-accent">
+          <div class="hero-layout lg:grid-cols-[1.15fr_0.85fr]">
+            <div>
+              <div class="hero-eyebrow">Artist Library</div>
+              <h1 class="hero-title">所有画师信息</h1>
+              <p class="hero-body">在同一个页面里完成搜索、筛选、浏览、收藏和复制，减少来回切换造成的干扰。</p>
+            </div>
+            <div class="metric-grid">
+              <div class="metric-tile">
+                <div class="metric-label">总数</div>
+                <div class="metric-value">{{ artists.length }}</div>
+              </div>
+              <div class="metric-tile">
+                <div class="metric-label">匹配</div>
+                <div class="metric-value">{{ filtered.length }}</div>
+              </div>
+              <div class="metric-tile">
+                <div class="metric-label">收藏</div>
+                <div class="metric-value">{{ favoritesCount }}</div>
+              </div>
+            </div>
+          </div>
+        </section>
 
         <!-- 搜索与统计 -->
-        <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div class="md:col-span-2 card p-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div class="md:col-span-2 search-card">
             <div class="flex items-center justify-between">
               <label class="block text-lg font-bold text-neutral-900 dark:text-neutral-100"
                 >搜索（名称或别名）</label
@@ -42,7 +64,7 @@
               画师库加载中…
             </div>
           </div>
-          <div class="card p-8">
+          <div class="stats-card">
             <div class="text-base text-muted uppercase tracking-wide font-bold mb-4">统计</div>
             <div class="space-y-2 text-base">
               <div>总数：{{ artists.length }}</div>
@@ -55,7 +77,7 @@
         </div>
 
         <!-- 排序与视图切换 -->
-        <div class="mt-10 card p-8">
+        <div class="panel-card">
           <div class="flex flex-col gap-8">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div>
@@ -173,7 +195,7 @@
         </div>
 
         <!-- 列表 / 卡片视图 -->
-        <div class="mt-10 card">
+        <div class="content-card">
         <div v-if="viewMode === 'list'" class="overflow-x-auto">
           <table class="min-w-full text-sm">
             <thead>
@@ -387,10 +409,8 @@
 <script setup lang="ts">
 import AppHeader from '@/components/common/AppHeader.vue'
 import { onMounted, ref, computed, watch, reactive } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { useGeneratorStore } from '@/stores/generator'
 
-const { t } = useI18n()
 const store = useGeneratorStore()
 const query = ref('')
 const debouncedQuery = ref('')
@@ -404,7 +424,7 @@ watch(query, (val) => {
     qTimer = null
   }, 200)
 })
-const isLoading = computed(() => store.isLoading)
+const isLoading = computed(() => store.isArtistsLoading)
 const pageSize = ref(50)
 const currentPage = ref(1)
 const pageInput = ref(1)
@@ -523,9 +543,8 @@ const loadedAtText = computed(() =>
   store.artistsLoadedAt ? new Date(store.artistsLoadedAt).toLocaleString() : '—',
 )
 // 收藏相关
-const favorites = ref<Set<string>>(new Set())
 const onlyFavorites = ref(false)
-const favoritesCount = computed(() => favorites.value.size)
+const favoritesCount = computed(() => store.artistFavorites.length)
 
 onMounted(async () => {
   if (!store.artists.length) {
@@ -536,18 +555,10 @@ onMounted(async () => {
     const vm = localStorage.getItem('library.viewMode') as 'list' | 'grid' | null
     const sk = localStorage.getItem('library.sortKey') as 'count' | 'name' | null
     const so = localStorage.getItem('library.sortOrder') as 'asc' | 'desc' | null
-    const favsRaw = localStorage.getItem('library.favorites')
     const onlyFavRaw = localStorage.getItem('library.onlyFavorites')
     if (vm === 'list' || vm === 'grid') viewMode.value = vm
     if (sk === 'count' || sk === 'name') sortKey.value = sk
     if (so === 'asc' || so === 'desc') sortOrder.value = so
-    if (favsRaw) {
-      try {
-        const arr = JSON.parse(favsRaw)
-        if (Array.isArray(arr))
-          favorites.value = new Set(arr.filter((x: any) => typeof x === 'string'))
-      } catch {}
-    }
     if (onlyFavRaw === 'true' || onlyFavRaw === 'false') {
       onlyFavorites.value = onlyFavRaw === 'true'
     }
@@ -582,7 +593,7 @@ const filtered = computed(() => {
       count >= postMin.value &&
       count <= (postMax.value || maxPostCount.value) &&
       aliasCount >= aliasMin.value
-    const favOk = !onlyFavorites.value || favorites.value.has(a.name)
+    const favOk = !onlyFavorites.value || store.isArtistFavorite(a.name)
     return searchOk && filtersOk && favOk
   })
 })
@@ -680,10 +691,6 @@ function resetFilters() {
 }
 
 async function copyName(name: string) {
-  if (!store.user) {
-    store.addToast('info', t('auth.identity_check'), t('share.auth_required'))
-    return
-  }
   try {
     await navigator.clipboard.writeText(name)
     store.addToast('success', '已复制名称', name, 1500)
@@ -693,10 +700,6 @@ async function copyName(name: string) {
 }
 
 async function copySnippet(a: { name: string; other_names?: string[]; post_count?: number }) {
-  if (!store.user) {
-    store.addToast('info', t('auth.identity_check'), t('share.auth_required'))
-    return
-  }
   const aliases = a.other_names && a.other_names.length ? a.other_names.join(',') : '—'
   const snippet = `画师名：${a.name} 别名：${aliases} 作品数：${a.post_count ?? 0}`
   try {
@@ -708,22 +711,12 @@ async function copySnippet(a: { name: string; other_names?: string[]; post_count
 }
 
 function isFavorite(name: string): boolean {
-  return favorites.value.has(name)
-}
-
-function saveFavorites() {
-  try {
-    localStorage.setItem('library.favorites', JSON.stringify(Array.from(favorites.value)))
-  } catch {}
+  return store.isArtistFavorite(name)
 }
 
 function toggleFavorite(name: string) {
-  if (favorites.value.has(name)) {
-    favorites.value.delete(name)
-  } else {
-    favorites.value.add(name)
-  }
-  saveFavorites()
+  const artist = artists.value.find((item) => item.name === name)
+  store.toggleArtistFavorite(artist || name)
 }
 </script>
 
