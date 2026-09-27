@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Tera-Dark/artist-generator/blob/main/docs/data-format.schema.json",
+  "title": "Artist Generator local data export v1",
+  "description": "Only user-created text records. No Danbooru images or credentials are exported.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "version", "exportedAt", "history", "favorites"],
+  "properties": {
+    "format": { "const": "artist-generator.local-data" },
+    "version": { "const": 1 },
+    "exportedAt": { "type": "string", "format": "date-time" },
+    "history": { "type": "array", "maxItems": 5000, "items": { "$ref": "#/$defs/entry" } },
+    "favorites": { "type": "array", "maxItems": 5000, "items": { "$ref": "#/$defs/entry" } }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "text", "names", "mode", "source", "createdAt"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z0-9_-]{8,80}$" },
+        "text": { "type": "string", "minLength": 1, "maxLength": 20000, "pattern": "\\S" },
+        "names": { "type": "array", "maxItems": 200, "items": { "type": "string", "minLength": 1, "maxLength": 300 } },
+        "mode": { "enum": ["pure", "standard", "creative", "nai", "mixed"] },
+        "source": { "enum": ["generated", "edited", "imported"] },
+        "createdAt": { "type": "integer", "minimum": 0, "maximum": 8640000000000000 }
+      }
+    }
+  }
+}

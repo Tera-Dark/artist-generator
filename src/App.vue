@@ -1,97 +1,122 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
-import { useGeneratorStore } from '@/stores/generator'
-import { applyThemePreference, getStoredThemePreference } from '@/services/preferences'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { BookOpen, History, Moon, Settings2, Sparkles, Sun, WandSparkles } from 'lucide-vue-next'
+import Workspace from '@/components/Workspace.vue'
+import ArtistLibrary from '@/components/ArtistLibrary.vue'
+import SavedStrings from '@/components/SavedStrings.vue'
+import SettingsPanel from '@/components/SettingsPanel.vue'
+import OnboardingTour from '@/components/OnboardingTour.vue'
+import { useVault } from '@/composables/useVault'
 
-const store = useGeneratorStore()
-let themeMediaQuery: MediaQueryList | null = null
+type Tab = 'workspace' | 'library' | 'saved' | 'settings'
+type ThemeChoice = 'system' | 'light' | 'dark'
+const THEME_KEY = 'artist-generator-theme'
+const TOUR_KEY = 'artist-generator-tour-v1'
+const activeTab = ref<Tab>('workspace')
+const theme = ref<'light' | 'dark'>('light')
+const themeChoice = ref<ThemeChoice>('system')
+const showTour = ref(false)
+const editRequest = ref<{ text: string; nonce: number } | null>(null)
+let nextRequest = 0
+let themeMedia: MediaQueryList | null = null
+let tourTimer: ReturnType<typeof setTimeout> | undefined
+const vault = useVault()
+watch(activeTab, () => window.scrollTo({ top: 0, behavior: 'auto' }))
 
-function handleKey(e: KeyboardEvent) {
-  if (e.key === 'Escape' && store.toasts.length) {
-    const last = store.toasts[store.toasts.length - 1]
-    if (last) store.removeToast(last.id)
-  }
+function storedValue(key: string) {
+  try { return localStorage.getItem(key) } catch { return null }
 }
+function updateTheme(value: 'light' | 'dark') {
+  theme.value = value
+  document.documentElement.dataset.theme = value
+  document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute('content', value === 'dark' ? '#151c1a' : '#fbfcfb')
+}
+function setThemeChoice(value: ThemeChoice) {
+  themeChoice.value = value
+  updateTheme(value === 'system' ? themeMedia?.matches ? 'dark' : 'light' : value)
+  try { localStorage.setItem(THEME_KEY, value) }
+  catch { /* Theme works for this session even without localStorage. */ }
+}
+function onSystemThemeChange(event: MediaQueryListEvent) {
+  if (themeChoice.value === 'system') updateTheme(event.matches ? 'dark' : 'light')
+}
+function toggleTheme() { setThemeChoice(theme.value === 'light' ? 'dark' : 'light') }
 
-function handleSystemThemeChange() {
-  if (getStoredThemePreference() === 'system') {
-    applyThemePreference('system')
-  }
+async function edit(text: string) {
+  editRequest.value = { text, nonce: ++nextRequest }
+  activeTab.value = 'workspace'
+  await nextTick()
+}
+function hasSeenTour() {
+  return storedValue(TOUR_KEY) === 'done' || (() => {
+    try { return sessionStorage.getItem(TOUR_KEY) === 'done' } catch { return false }
+  })()
+}
+function replayTour() {
+  activeTab.value = 'workspace'
+  showTour.value = true
+}
+async function closeTour(completed: boolean) {
+  showTour.value = false
+  try { localStorage.setItem(TOUR_KEY, 'done') }
+  catch { try { sessionStorage.setItem(TOUR_KEY, 'done') } catch { /* Storage disabled. */ } }
+  if (completed) activeTab.value = 'workspace'
+  await nextTick()
+  const target = document.querySelector<HTMLElement>('.top-nav [aria-current="page"]') || document.querySelector<HTMLElement>('.settings-button')
+  target?.focus({ preventScroll: true })
 }
 
 onMounted(() => {
-  applyThemePreference(getStoredThemePreference())
-  store.initAuth()
-
-  themeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-  themeMediaQuery.addEventListener('change', handleSystemThemeChange)
-  window.addEventListener('keydown', handleKey)
+  try { localStorage.removeItem('ag_gh_token') } catch { /* Remove legacy auth without touching old drafts. */ }
+  themeMedia = window.matchMedia('(prefers-color-scheme: dark)')
+  const saved = storedValue(THEME_KEY) || storedValue('theme')
+  themeChoice.value = saved === 'dark' || saved === 'light' ? saved : 'system'
+  updateTheme(themeChoice.value === 'system' ? themeMedia.matches ? 'dark' : 'light' : themeChoice.value)
+  themeMedia.addEventListener('change', onSystemThemeChange)
+  void vault.init()
+  if (!hasSeenTour()) tourTimer = setTimeout(() => { showTour.value = true }, 450)
 })
-
 onUnmounted(() => {
-  themeMediaQuery?.removeEventListener('change', handleSystemThemeChange)
-  window.removeEventListener('keydown', handleKey)
+  themeMedia?.removeEventListener('change', onSystemThemeChange)
+  if (tourTimer) clearTimeout(tourTimer)
 })
 </script>
 
 <template>
-  <div id="app" class="min-h-screen">
-    <!-- 顶部浮动入口已移除，统一由 AppHeader 导航承载 -->
-
-
-
-    <RouterView />
-
-    <!-- 全局 Toast 展示区（带过渡、进度条、美化） -->
-    <TransitionGroup name="toast" tag="div" class="fixed bottom-4 right-4 z-[9999] space-y-2 pointer-events-none" aria-live="polite" aria-atomic="true">
-      <div
-        v-for="t in store.toasts"
-        :key="t.id"
-        class="toast-item min-w-[220px] max-w-[360px] rounded-lg border shadow-lg px-4 py-3 text-sm pointer-events-auto backdrop-blur-sm"
-        :class="{
-          'bg-blue-50/80 border-blue-200': t.type === 'info',
-          'bg-amber-50/80 border-amber-200': t.type === 'warning',
-          'bg-green-50/80 border-green-200': t.type === 'success',
-          'bg-red-50/80 border-red-200': t.type === 'error',
-          'dark:bg-neutral-800/80 dark:border-neutral-700': true,
-        }"
-        role="alert"
-      >
-        <div class="flex items-start gap-3">
-          <div class="mt-0.5 text-lg" aria-hidden="true">
-            <span v-if="t.type === 'success'">✅</span>
-            <span v-else-if="t.type === 'error'">⛔</span>
-            <span v-else-if="t.type === 'warning'">⚠️</span>
-            <span v-else>ℹ️</span>
-          </div>
-          <div class="flex-1">
-            <div class="font-medium mb-0.5 text-neutral-900 dark:text-neutral-100">{{ t.title }}</div>
-            <div class="text-neutral-700 dark:text-neutral-300">{{ t.message }}</div>
-          </div>
-          <button
-            class="ml-auto text-neutral-500 hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-100 transition-colors"
-            @click="store.removeToast(t.id)"
-            aria-label="关闭通知"
-          >
-            ✕
+  <a class="skip-link" href="#main">跳到主要内容</a>
+  <div class="app-shell" :inert="showTour">
+    <header class="site-header">
+      <div class="header-inner">
+        <button type="button" class="brand" aria-label="返回画师串生成器" @click="activeTab = 'workspace'">
+          <span class="brand-icon"><Sparkles :size="19" :stroke-width="2" aria-hidden="true" /></span>
+          <span>画师串生成器</span>
+        </button>
+        <nav class="top-nav" aria-label="主要功能">
+          <button type="button" :aria-current="activeTab === 'workspace' ? 'page' : undefined" @click="activeTab = 'workspace'"><WandSparkles :size="16" aria-hidden="true" /> 工作区</button>
+          <button type="button" :aria-current="activeTab === 'library' ? 'page' : undefined" @click="activeTab = 'library'"><BookOpen :size="16" aria-hidden="true" /> 画师库</button>
+          <button type="button" :aria-current="activeTab === 'saved' ? 'page' : undefined" @click="activeTab = 'saved'"><History :size="16" aria-hidden="true" /> 我的串</button>
+        </nav>
+        <div class="header-actions">
+          <span class="local-badge"><span class="status-dot" aria-hidden="true"></span> 本地优先</span>
+          <button class="icon-button settings-button" type="button" aria-label="设置" title="设置" :aria-current="activeTab === 'settings' ? 'page' : undefined" @click="activeTab = 'settings'"><Settings2 :size="19" aria-hidden="true" /></button>
+          <button class="icon-button theme-button" type="button" :aria-label="theme === 'light' ? '切换到深色模式' : '切换到浅色模式'" @click="toggleTheme">
+            <Moon v-if="theme === 'light'" :size="19" aria-hidden="true" />
+            <Sun v-else :size="19" aria-hidden="true" />
           </button>
         </div>
-        <div v-if="t.duration && t.duration > 0" class="toast-progress mt-2 h-0.5 bg-neutral-300 dark:bg-neutral-700 rounded-full overflow-hidden">
-          <div class="progress-bar bg-neutral-500/50 dark:bg-neutral-400/50 h-full" :style="{ animationDuration: (t.duration || 0) + 'ms' }"></div>
-        </div>
       </div>
-    </TransitionGroup>
-  </div>
-</template>
+    </header>
 
-<style scoped>
-#app {
-  font-family:
-    'Inter',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    system-ui,
-    sans-serif;
-}
-</style>
+    <main id="main" class="main-content" :class="{ 'wide-content': activeTab !== 'workspace' }">
+      <KeepAlive>
+        <Workspace v-if="activeTab === 'workspace'" :edit-request="editRequest" />
+        <ArtistLibrary v-else-if="activeTab === 'library'" @edit="edit" />
+        <SavedStrings v-else-if="activeTab === 'saved'" @edit="edit" />
+        <SettingsPanel v-else :theme-choice="themeChoice" @set-theme="setThemeChoice" @replay-tour="replayTour" />
+      </KeepAlive>
+    </main>
+
+    <footer class="site-footer"><span>Artist Generator</span><span>Local first <span aria-hidden="true">·</span> Made for creating</span></footer>
+  </div>
+  <OnboardingTour v-if="showTour" @navigate="activeTab = $event" @close="closeTour" />
+</template>

@@ -1,195 +1,73 @@
-# Artist Generator
+# 画师串生成器
 
-面向 AI 绘画工作流的画师串生成、浏览、分享与审核工具。
+一个轻量、无需登录的 Vue 3 单页工具。**生成、编辑、搜索和保存画师串在浏览器本地完成**；只有进入画师库的「瀑布流」图片视图，才按需查询 Danbooru。电脑与手机可用，生产版支持安装为 PWA。
 
-项目当前已经整理成一套零成本的静态内容方案：
+## 功能与快捷用法
 
-- 前端：Vue 3 + Vite + TailwindCSS + Pinia
-- 分享内容：`public/data/*.json` 静态文件
-- 投稿入口：GitHub Issues
-- 审核与发布：GitHub OAuth + 仓库写入
-- 自动化：GitHub Actions + 本地内容管线脚本
+- **随机生成**：从内置的 43,743 位画师中不重复抽取。数量可指定，也可设置包含两端的随机区间；默认安全上限为 **99 位**，设置中可调低，程序硬上限也是 99。输出纯文本、标准 `(name:1.2)`、创意括号或 NAI `1.2::name ::`；可调最低作品数、权重范围、括号类型/层数和 `artist:` 前缀。
+- **二次编辑**：粘贴现有画师串，或一键带入生成结果/历史记录；去权重、保留原名单重随机权重或括号层数，**目标格式与生成器相同的四种**。标准 ↔ NAI 保留已有数值；纯文本和创意括号无法表示原数值，会舍弃精确权重。原输入不会被覆盖。
+- **画师库**：进入页面时才加载完整快照，纯文本视图保留原始 JSON 的全部 `name`、`other_names`、`post_count`、`danbooru_url` 字段。搜索支持同时查询多条别名：用空格/逗号分隔关键词、引号包住带空格的别名；高级筛选可切换**全部/任意**词、名称/别名范围、作品数上下限、有无别名、别名字符与别名数量，再按作品数、名称或别名数排序。图片视图是真正随内容高度排列的瀑布流。底部翻页可**输入页码并回车/点「跳转」**，会校验当前筛选后的总页数；「随机发现」只从当前筛选结果中挑选并定位一位画师。
+- **图片精度与流量**：设置中选择 **180 px 省流 / 360 px 均衡（默认）/ 720 px 清晰**的预览尺寸上限；仅请求最新全年龄（G）作品的缩略图，按视野懒加载。该尺寸缺失或图片失败时尝试较低尺寸，不请求原图；密度与每页数量也可调整。
+- **我的串**：生成结果自动记入历史，结果和编辑结果可收藏；历史上限 250 条、收藏上限 1,000 条。浏览器 IndexedDB 保存记录，支持搜索、继续编辑、确认后删除单条记录、导入与导出 JSON。存储受限时明确提示仅在本次会话暂存。
+- **设置与引导**：首次打开有可跳过、可键盘操作的对话框＋聚焦框引导；设置中可重看。可调生成安全上限、避免和上一组重复（候选不足自动回退）、生成后自动复制、自动滚动、图片精度/瀑布流密度/每页数量、外观和图片缓存。偏好只保存在当前浏览器；恢复默认**不会删除历史或收藏**。
+- **离线与移动端**：PWA 预缓存页面和精简生成画师库；完整画师库首次打开后缓存，图片只缓存成功加载的缩略图。离线只能使用已缓存的内容，不能凭空获取新图。手机上有更大的操作目标和可换行的翻页/操作按钮；长画师列表可浮动返回筛选区，工作区可直达编辑器并回到生成设置。浅色和深色模式使用一致的克制青绿色交互配色。
 
-## 当前能力
+## 本地运行
 
-### 生成工作流
-
-- 工作区支持纯净、标准权重、创意括号、NAI 四种生成模式
-- 支持按作品数过滤、预选画师、格式工具、结果复制
-- 首屏会静默加载画师库，避免首次生成拿到假数据
-
-### 浏览与管理
-
-- 画师库支持搜索、排序、分页、卡片/列表切换、画师收藏
-- 画师串分享页支持搜索、标签筛选、精选展示、详情弹窗、复制、加入收藏夹
-- 设置页、分享页、审核页、首页、工作区、画师库已经统一到同一套全局样式系统
-
-### 本地持久化
-
-- 支持离线本地身份
-- 支持多收藏夹、默认收藏夹、Prompt/画师双收藏
-- 支持离线草稿、草稿副本、草稿搜索
-- 支持本地数据导出/导入
-
-### 审核与发布
-
-- 投稿前有实时校验
-- 审核台支持校验错误/提醒、疑似重复提示、精选设置
-- 发布内容写入 `public/data/chunk_*.json`
-- 自动生成 `featured.json`、`tags.json`、`prompts.json`、`index.json`
-
-## 目录说明
-
-### 前端
-
-- `src/views/ConceptBlueprint.vue`：工作区
-- `src/views/Library.vue`：画师库
-- `src/views/SharedPrompts.vue`：画师串分享页
-- `src/views/Moderation.vue`：审核台 / 本地收藏夹管理
-- `src/views/Settings.vue`：设置与本地数据工作台
-
-### 内容数据
-
-- `public/data/chunk_*.json`：正式发布内容
-- `public/data/index.json`：chunk 索引
-- `public/data/prompts.json`：兼容与聚合输出
-- `public/data/featured.json`：精选内容元数据
-- `public/data/tags.json`：标签统计
-
-### 自动化
-
-- `.github/workflows/deploy.yml`：部署
-- `.github/workflows/content-pipeline.yml`：静态内容检查与元数据刷新
-- `.github/workflows/submission-guard.yml`：Issue 投稿守卫
-- `scripts/content-pipeline.mjs`：本地/CI 共用的内容管线脚本
-
-## 本地开发
-
-### 环境要求
-
-- Node.js 18+
-- npm 9+
-
-### 启动
+需要 Node.js 20+ 和 npm：
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
-Windows 也可以直接双击 `start.bat`。
-
-### 常用命令
+打开终端中的地址（通常是 `http://localhost:5173/`）。Windows 也可使用 `start.bat`。开发服务器自带**仅用于 Danbooru 图片的只读同源转发**；生成、搜索、编辑和保存不依赖该转发或任何账户。
 
 ```bash
-# 本地开发
-npm run dev
-
-# 类型检查
-npm run type-check
-
-# 构建
-npm run build
-
-# 仅构建静态站点
-npm run build-only
-
-# 内容管线检查
-npm run content:check
-
-# 重新生成 featured / tags / prompts / index
-npm run content:write
+npm run type-check  # Vue / TypeScript 类型检查
+npm run test        # 生成、编辑、筛选、备份、偏好和图片安全测试
+npm run build       # 类型检查 + 测试 + 生产构建
+npm run preview     # 本地预览 dist/，也提供只读图片转发
 ```
 
-## 零成本分享流程
+请通过本地服务或静态网站访问，**不要直接双击 `index.html` 或 `dist/index.html`**：`file://` 无法正常加载模块、JSON 或 Service Worker。
 
-### 1. 投稿
+## 数据与备份
 
-- 用户在前端填写分享表单
-- 前端先做实时校验与重复提示
-- 登录后通过 GitHub Issues 提交
+- `public/data/artists.json`：仅含名称及作品数的精简生成快照，随 PWA 预缓存；`public/data/artists-full.json`：43,743 条完整原始画师记录，只在打开画师库时加载。作品数是快照，不是实时值；全部别名/词缀未被截断。
+- 历史和收藏只存在当前浏览器、当前站点来源的 IndexedDB，不会自动云同步。浏览器仍可能在清理站点数据或存储紧张时回收数据；可在「我的串」申请持久化权限，并**定期导出备份**。图片缓存可单独清理，不会删除收藏。
+- 导出的紧凑 JSON 使用 `format: "artist-generator.local-data"`、`version: 1`、ISO 8601 `exportedAt` 以及 `history`、`favorites` 两个数组。每条记录包含 `id`、`text`、`names`、`mode`、`source`、`createdAt`（Unix 毫秒）。规范见 [`docs/data-format.schema.json`](docs/data-format.schema.json)。导入文件上限 **32 MB**；先校验整个文件，再在一个事务中**合并**：历史按 ID 去重，收藏按文本去重；超过本地上限保留最新记录。图片、偏好、账号信息及其他旧数据不在备份中。
+- 新偏好会读取旧版的 `artist-generator-settings-v2` 生成设置，随后保存在 `artist-generator-preferences-v1`。旧版 `ag_gh_token` 登录令牌会被清除；其他旧版草稿/收藏不会被擅自删除，也不会自动迁入 v1 备份结构。如需保留旧版私人内容，请在升级前自行备份。
 
-### 2. 守卫
+## 图片模式与部署差异
 
-- `submission-guard.yml` 会自动检查 Issue 中的 JSON 数据块
-- 自动补充 `needs-fix` 或 `ready-for-review`
-- 自动更新机器人评论，提示投稿问题
+瀑布流只为进入视野的画师请求元数据；客户端请求间隔约 **1.1 秒**、最多同时 2 个元数据任务。查询限定为 Danbooru `rating:g` 的最新作品，图片 URL 严格限制为 `cdn.donmai.us/180x180/…`、`360x360/…` 或 `720x720/…` 的同一作品哈希；失败显示占位与画师链接，**不会妨碍随机生成**。元数据本地保存约 24 小时（无结果约 6 小时）；图片缓存最多约 **80 张和 40 MB**，按精度限制单张体积至 0.5 / 0.9 / 2 MB。浏览器缓存并非永久可靠。图片模式会向 Danbooru 分享所查询的画师标签和请求方网络信息；没有 API 密钥、登录或上传。
 
-### 3. 审核
+| 部署方式 | 生成/编辑/收藏 | 图片视图 |
+| --- | --- | --- |
+| `npm run dev` / `npm run preview` | 本地可用 | Vite 只读同源转发，可提供 180 / 360 / 720 px 图片 |
+| 支持根目录 `api/` Node 函数的 Vercel 部署 | 本地可用 | `api/danbooru.js` 和 `api/thumbnail.js` 提供受限只读转发；部署后仍需按实际域名验收 |
+| GitHub Pages 或其他**纯静态**托管 | 本地可用 | 无服务器转发；会尝试直连 Danbooru。跨域策略或反爬挑战可能阻止图片，不保证每位访问者都能看到预览图；纯文本画师库不受影响 |
 
-- 管理员在审核台查看待审核内容
-- 审核台会显示：
-  - 校验错误
-  - 内容提醒
-  - 疑似重复稿
-- 校验错误未修复时不能直接发布
+生产构建输出在 `dist/`；仓库的 GitHub Pages 工作流部署静态版本，Vite 相对路径支持 `/artist-generator/` 子目录。PWA/离线需在 HTTPS 或 `localhost` 下使用：初次联网访问页面后可离线生成；完整画师库要先在线打开一次，图片要先在线加载一次。若希望公开部署时图片更稳定，请使用支持同仓库 `api/` 函数的平台，并按实际流量配置服务端配额与监控；切勿把 Danbooru 凭据放进前端。
 
-### 4. 发布
+当前只保留创作相关功能；旧站点的投稿、社区、审核、登录、图床和其他原有页面不在本版本中。
 
-- 审核通过后内容写入 `public/data/chunk_*.json`
-- 精选内容写入 `public/data/featured.json`
+## GitHub 提交前检查
 
-### 5. 静态元数据刷新
-
-- `content-pipeline.mjs` 负责：
-  - 校验静态内容结构
-  - 刷新 `index.json`
-  - 聚合 `prompts.json`
-  - 生成 `featured.json`
-  - 生成 `tags.json`
-
-## 提交内容的建议格式
-
-建议至少包含：
-
-- `title`
-- `prompt`
-- `model`
-- `tags`
-- `image`
-- `description`
-
-内容质量建议：
-
-- 标题不要用“测试 / 无题 / untitled”
-- Prompt 不要过短
-- 标签控制在 1 到 6 个
-- 图片尽量使用公开可访问的 `http(s)` 链接
-
-## 本地收藏与草稿
-
-### 本地身份
-
-- 每个身份都有独立的收藏夹和离线草稿
-- 适合在同一台设备上区分不同创作方向
-
-### 收藏夹
-
-- 默认收藏夹用于快速收藏
-- 也可以继续新建主题收藏夹
-- 支持 Prompt / 画师混合管理
-
-### 草稿
-
-- 未登录也可以新建离线草稿
-- 支持自动保存、复制副本、搜索
-- 登录后可继续整理并提交
-
-## 提交前自检
-
-建议在推送前至少运行：
+本轮发布验收项目和已知部署限制见 [`docs/RELEASE_QA.md`](docs/RELEASE_QA.md)。此分支将旧站点的社区、登录、审核等文件有意移除，保留本地创作工具。首次提交前请**逐项审查删除列表和新增的大型 JSON**，不要把个人导出的备份、令牌或临时截图提交到公共仓库。建议从仓库根目录运行：
 
 ```bash
-npm run content:check
-npm run type-check
+npm ci
 npm run build
+npm audit --omit=dev --audit-level=moderate
+git diff --check
+git status --short
+# 确认增删改文件都符合预期后，再自行暂存、复核和提交：
+git add -A
+git diff --cached --stat
+git diff --cached --check
+git commit -m "feat: ship local-first artist generator"
 ```
 
-当前仓库里 `oxlint` 可正常运行。
-如果要单独跑 ESLint，建议优先使用项目脚本配置而不是直接用默认命令行参数，避免 `.vue` / TypeScript 解析方式不匹配。
-
-## 部署
-
-查看 [DEPLOYMENT.md](./DEPLOYMENT.md)。
-
-如果你用 GitHub Pages / Vercel 这类静态部署平台，这个项目当前的分享链路不需要额外数据库成本。
+仓库已包含 `.github/workflows/deploy.yml`：推送到 `main` 或 `master` 时运行构建并发布 `dist/` 到 GitHub Pages；在仓库设置的 **Pages → Build and deployment** 中选择 **GitHub Actions**。如果更换仓库名或部署到不同子目录，请先在目标地址实测资源路径、PWA 首次联网加载、离线恢复与画师库翻页。**纯 GitHub Pages 不能运行同源图片代理**，瀑布流预览可能因 Danbooru 跨域/反爬限制而失败；请勿把本地预览中图片正常误当成 GitHub Pages 的保证。

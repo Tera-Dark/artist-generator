@@ -9,6 +9,11 @@ lerna-debug.log*
 
 node_modules
 .DS_Store
+# Never publish local credentials or personal exports.
+.env
+.env.*
+!.env.example
+artist-generator-????-??-??.json
 dist
 dist-ssr
 coverage

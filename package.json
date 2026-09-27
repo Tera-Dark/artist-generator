@@ -1,51 +1,31 @@
 {
   "name": "artist-generator",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "run-p type-check \"build-only {@}\" --",
-    "preview": "vite preview",
+    "build": "npm run type-check && npm run test && vite build",
     "build-only": "vite build",
+    "preview": "vite preview",
     "type-check": "vue-tsc --build",
-    "content:check": "node scripts/content-pipeline.mjs --check",
-    "content:write": "node scripts/content-pipeline.mjs --write",
-    "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
-    "lint:eslint": "eslint . --fix",
-    "lint": "run-s lint:*",
-    "format": "prettier --write src/"
+    "test": "vitest run"
   },
   "dependencies": {
-    "@octokit/rest": "^22.0.1",
-    "@tailwindcss/forms": "^0.5.10",
-    "@tailwindcss/typography": "^0.5.16",
+    "idb": "^8.0.3",
     "lucide-vue-next": "^0.556.0",
-    "pinia": "^3.0.1",
-    "tailwindcss": "^3.4.17",
-    "vue": "^3.5.13",
-    "vue-i18n": "^11.2.2",
-    "vue-router": "^4.5.0"
+    "vue": "^3.5.13"
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.1",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-vue": "^5.2.3",
-    "@vue/eslint-config-prettier": "^10.2.0",
-    "@vue/eslint-config-typescript": "^14.5.0",
     "@vue/tsconfig": "^0.7.0",
-    "autoprefixer": "^10.4.21",
-    "eslint": "^9.22.0",
-    "eslint-plugin-oxlint": "^0.16.0",
-    "eslint-plugin-vue": "~10.0.0",
-    "jiti": "^2.4.2",
-    "npm-run-all2": "^7.0.2",
-    "oxlint": "^0.16.0",
-    "postcss": "^8.5.5",
-    "prettier": "3.5.3",
+    "fake-indexeddb": "^6.2.5",
     "typescript": "~5.8.0",
     "vite": "^6.2.4",
-    "vite-plugin-vue-devtools": "^7.7.2",
+    "vite-plugin-pwa": "^1.3.0",
+    "vitest": "^4.1.11",
     "vue-tsc": "^2.2.8"
   }
 }
