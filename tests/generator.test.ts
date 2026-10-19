@@ -41,7 +41,18 @@ describe('generator', () => {
 
   it('formats standard weights with one decimal and supports the prefix', () => {
     const result = generateArtistString(pool, { count: 2, withPrefix: true }, () => 0)
-    expect(result.text).toBe('artist:(alpha:0.5), artist:(beta:0.5)')
+    expect(result.text).toBe('(artist:alpha:0.5), (artist:beta:0.5)')
+  })
+
+  it('supports two-decimal weights and canonical NAI prefixes', () => {
+    const item = generateArtistString(pool, { count: 1, mode: 'nai', withPrefix: true, weightMin: 1.05, weightMax: 1.05, weightPrecision: 2 }, () => 0)
+    expect(item.text).toBe('1.05::artist:alpha ::')
+  })
+
+  it('can exclude names ending in a digit', () => {
+    const names = [{ name: 'alpha123', post_count: 50 }]
+    expect(() => generateArtistString(names, { count: 1 })).toThrow('只有 0 位')
+    expect(generateArtistString(names, { count: 1, excludeNumericSuffix: false }).names).toEqual(['alpha123'])
   })
 
   it('formats NAI weights', () => {
