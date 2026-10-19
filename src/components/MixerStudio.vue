@@ -3,7 +3,8 @@ import { computed, onMounted, ref, shallowRef, watch } from 'vue'
 import { usePreferences } from '@/composables/usePreferences'
 import { useStudio } from '@/composables/useStudio'
 import { useVault } from '@/composables/useVault'
-import { loadArtistLibrary, type Artist } from '@/data/artistLibrary'
+import { loadArtistLibrary } from '@/data/artistLibrary'
+import type { Artist } from '@/core/generator'
 import { formatMix, exportBatchText, STUDIO_FILE_LIMIT, type MixArtist, type MixFormat, type MixPreset } from '@/core/studio'
 import { copyText } from '@/utils/clipboard'
 
@@ -56,7 +57,7 @@ function selectName(name: string, role: 'main' | 'support' = activeRole.value) {
     selected.value = [newArtist(name, 'main'), ...without.filter(a => a.role === 'support')]
     mainPinned.value = true
   } else {
-    if (without.some(a => a.role === 'main') && selected.value.find(a => a.name === name)?.role === 'main') {
+    if (selected.value.find(a => a.name === name)?.role === 'main') {
       announce('当前画师已经是主画师', true); return
     }
     selected.value = [...without, newArtist(name, 'support')]
@@ -183,6 +184,12 @@ async function discard(id: string) {
 function updateStatus(name: string, status: 'favorite' | 'neutral' | 'blocked') {
   void studio.updateProfile(name, { status }).catch(e => announce(String(e), true))
 }
+function updateRole(name: string, role: 'main' | 'support' | 'either') {
+  void studio.updateProfile(name, { role }).catch(e => announce(String(e), true))
+}
+function updateNote(name: string, note: string) {
+  void studio.updateProfile(name, { note }).catch(e => announce(String(e), true))
+}
 function updateRating(name: string, raw: string) {
   const rating = raw === '' ? null : Number(raw)
   void studio.updateProfile(name, { rating }).catch(e => announce(String(e), true))
@@ -274,10 +281,12 @@ async function importFile(event: Event) {
             <label>评分 <select :value="studio.profileOf(item.name)?.rating ?? ''" @change="updateRating(item.name, ($event.target as HTMLSelectElement).value)">
               <option value="">未评分</option><option v-for="i in 21" :key="i" :value="(i-1)/2">{{ ((i-1)/2).toFixed(1) }}</option>
             </select></label>
+            <label>适用角色 <select :value="studio.profileOf(item.name)?.role ?? 'either'" @change="updateRole(item.name, ($event.target as HTMLSelectElement).value as 'main' | 'support' | 'either')"><option value="either">主辅均可</option><option value="main">仅主画师</option><option value="support">仅辅助</option></select></label>
             <label>个人池 <select :value="studio.profileOf(item.name)?.status ?? 'neutral'" @change="updateStatus(item.name, ($event.target as HTMLSelectElement).value as 'favorite' | 'neutral' | 'blocked')">
               <option value="neutral">普通</option><option value="favorite">喜欢</option><option value="blocked">排除</option>
             </select></label>
           </div>
+          <label class="studio-field studio-top-gap">个人备注 <input type="text" maxlength="500" :value="studio.profileOf(item.name)?.note ?? ''" placeholder="画风特点、混合表现……" @change="updateNote(item.name, ($event.target as HTMLInputElement).value)" /></label>
         </div>
         <div class="studio-row studio-top-gap">
           <label class="studio-field studio-grow">输出格式
