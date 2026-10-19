@@ -11,11 +11,13 @@ import {
 import { editArtistString, type EditAction, type TargetFormat } from '@/core/stringEditor'
 import { loadArtistLibrary } from '@/data/artistLibrary'
 import { useVault } from '@/composables/useVault'
+import { useStudio } from '@/composables/useStudio'
 import { normalizeGeneratorPreferences, usePreferences } from '@/composables/usePreferences'
 import { copyText } from '@/utils/clipboard'
 
 const props = defineProps<{ editRequest: { text: string; nonce: number } | null }>()
 const vault = useVault()
+const studio = useStudio()
 const preferences = usePreferences()
 const options = preferences.generator
 const artists = shallowRef<readonly Artist[]>([])
@@ -84,8 +86,10 @@ async function generate() {
   if (libraryState.value !== 'ready') return
   normalizeCurrentOptions()
   try {
+    const blocked = new Set(studio.profiles.value.filter(profile => profile.status === 'blocked').map(profile => profile.name))
+    const pool = blocked.size ? artists.value.filter(artist => !blocked.has(artist.name)) : artists.value
     const generated = generateArtistString(
-      artists.value, options, Math.random, preferences.avoidLastArtists ? result.value?.names : undefined,
+      pool, options, Math.random, preferences.avoidLastArtists ? result.value?.names : undefined,
     )
     result.value = generated
     resultMode.value = options.mode
@@ -163,7 +167,7 @@ async function saveEditedHistory() {
   flash(vault.storageStatus.value === 'ready' ? '编辑结果已保存到历史记录' : '编辑结果仅本次会话暂存；请导出备份')
 }
 
-onMounted(() => { void loadLibrary() })
+onMounted(() => { void loadLibrary(); void studio.initStudio() })
 onUnmounted(() => { if (messageTimer) clearTimeout(messageTimer) })
 </script>
 
@@ -246,7 +250,7 @@ onUnmounted(() => { if (messageTimer) clearTimeout(messageTimer) })
       </div>
       <div class="composer-footer">
         <span class="library-status" :class="{ 'status-error': libraryState === 'error' }" role="status"><span class="status-dot" aria-hidden="true"></span>{{ libraryStatus }}</span>
-        <button class="generate-button" type="button" :disabled="libraryState !== 'ready'" @click="generate">随机生成 <ArrowUpRight :size="18" aria-hidden="true" /></button>
+        <button class="generate-button" type="button"  :disabled="libraryState !== 'ready' || studio.status.value === 'loading'" @click="generate">随机生成 <ArrowUpRight :size="18" aria-hidden="true" /></button>
       </div>
       <div v-if="libraryState === 'error'" class="load-error" role="alert">本地画师库无法读取。<button type="button" @click="loadLibrary">重试加载</button></div>
     </section>
