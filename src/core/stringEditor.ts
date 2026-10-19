@@ -17,6 +17,7 @@ export interface EditOptions {
   max: number
   bracketStyle?: BracketStyle
   bracketLevels?: number // 0 = random (or preserve existing creative depth on conversion)
+  precision?: 1 | 2
 }
 
 const numeric = '[+-]?(?:\\d+(?:\\.\\d+)?|\\.\\d+)'
@@ -46,8 +47,8 @@ export function parseArtistString(raw: string): Token[] {
   if (parts.length > 200) throw new Error('一次最多处理 200 个条目。')
 
   return parts.map((part, index) => {
-    const prefix = /^artist\s*:/i.test(part)
-    const content = prefix ? part.replace(/^artist\s*:\s*/i, '').trim() : part
+    const outerPrefix = /^artist\s*:/i.test(part)
+    const content = outerPrefix ? part.replace(/^artist\s*:\s*/i, '').trim() : part
     let weight: string | null = null
     let name = content
     let levels = 0
@@ -65,6 +66,9 @@ export function parseArtistString(raw: string): Token[] {
       name = result.value
       levels = result.levels
     }
+    const embeddedPrefix = /^artist\s*:/i.test(name)
+    const prefix = outerPrefix || embeddedPrefix
+    if (embeddedPrefix) name = name.replace(/^artist\s*:\s*/i, '').trim()
     if (!name) throw new Error(`第 ${index + 1} 项缺少画师名。`)
     if (name.length > 300) throw new Error(`第 ${index + 1} 项画师名过长（最多 300 字）。`)
     return { name, prefix, weight, levels }
@@ -76,11 +80,11 @@ function unitRandom(random: () => number) {
   return Number.isFinite(value) ? Math.max(0, Math.min(1 - Number.EPSILON, value)) : 0
 }
 
-function randomWeight(min: number, max: number, random: () => number) {
+function randomWeight(min: number, max: number, random: () => number, precision: 1 | 2) {
   if (!Number.isFinite(min) || !Number.isFinite(max)) throw new Error('权重范围必须是数字。')
   const low = Math.max(0, Math.min(2, Math.min(min, max)))
   const high = Math.max(0, Math.min(2, Math.max(min, max)))
-  return (low + unitRandom(random) * (high - low)).toFixed(1)
+  return (low + unitRandom(random) * (high - low)).toFixed(precision)
 }
 
 export function editArtistString(input: string, options: EditOptions, random: () => number = Math.random) {
@@ -91,21 +95,22 @@ export function editArtistString(input: string, options: EditOptions, random: ()
   if (!['pure', 'standard', 'nai', 'creative'].includes(options.format)) throw new Error('不支持的目标格式。')
   const style = options.bracketStyle && options.bracketStyle in bracketPairs ? options.bracketStyle : 'paren'
   const [open, close] = bracketPairs[style]
+  const precision = options.precision === 2 ? 2 : 1
   const chosenDepth = Number.isFinite(options.bracketLevels) ? Math.trunc(Math.max(0, Math.min(5, options.bracketLevels!))) : 0
 
   const text = tokens.map((token) => {
-    const prefix = token.prefix ? 'artist:' : ''
-    if (options.action === 'strip' || options.format === 'pure') return prefix + token.name
+    const name = (token.prefix ? 'artist:' : '') + token.name
+    if (options.action === 'strip' || options.format === 'pure') return name
     if (options.format === 'creative') {
       const levels = chosenDepth || (options.action === 'convert' && token.levels > 0 ? token.levels : 1 + Math.floor(unitRandom(random) * 5))
-      return prefix + `${open.repeat(levels)}${token.name}${close.repeat(levels)}`
+      return `${open.repeat(levels)}${name}${close.repeat(levels)}`
     }
     const weight = options.action === 'reroll'
-      ? randomWeight(options.min, options.max, random)
+      ? randomWeight(options.min, options.max, random, precision)
       : (token.weight ?? '1.0')
-    return prefix + (options.format === 'nai'
-      ? `${weight}::${token.name} ::`
-      : `(${token.name}:${weight})`)
+    return options.format === 'nai'
+      ? `${weight}::${name} ::`
+      : `(${name}:${weight})`
   }).join(', ')
 
   if (text.length > 20000) throw new Error('处理结果超过 20,000 字，请精简输入后重试。')
