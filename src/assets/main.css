@@ -551,3 +551,10 @@ input[type='checkbox'] { accent-color: var(--accent); }
 @media (prefers-reduced-motion: reduce) {
   .generate-button:hover:not(:disabled) { transform: none; }
 }
+
+/* Four-tab mobile navigation: keep all destinations visible without horizontal overflow. */
+@media (max-width: 440px) {
+  .top-nav { gap: 1px; }
+  .top-nav button { padding: 0 3px; font-size: 11px; gap: 0; }
+  .top-nav button svg { display: none; }
+}

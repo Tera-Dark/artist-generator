@@ -13,9 +13,14 @@ describe('non-destructive string editor', () => {
 
   it('converts standard to NAI and back without losing precision', () => {
     const output = editArtistString('(foo:1.25), artist:(bar:0.70)', options).text
-    expect(output).toBe('1.25::foo ::, artist:0.70::bar ::')
+    expect(output).toBe('1.25::foo ::, 0.70::artist:bar ::')
     expect(editArtistString(output, { ...options, format: 'standard' }).text)
-      .toBe('(foo:1.25), artist:(bar:0.70)')
+      .toBe('(foo:1.25), (artist:bar:0.70)')
+  })
+
+  it('handles legacy and canonical prefixes and configurable reroll precision', () => {
+    expect(editArtistString('1.05::artist:foo ::, artist:0.70::bar ::', options).text).toBe('1.05::artist:foo ::, 0.70::artist:bar ::')
+    expect(editArtistString('artist:foo', { ...options, action: 'reroll', min: 0.55, max: 0.55, precision: 2 }).text).toBe('0.55::artist:foo ::')
   })
 
   it('assigns 1.0 when converting an unweighted token', () => {
@@ -36,10 +41,10 @@ describe('non-destructive string editor', () => {
     const input = 'artist:(foo:1.25), (bar:0.8)'
     expect(editArtistString(input, { ...options, format: 'pure' }).text).toBe('artist:foo, bar')
     expect(editArtistString(input, { ...options, format: 'creative', bracketStyle: 'curly', bracketLevels: 2 }).text)
-      .toBe('artist:{{foo}}, {{bar}}')
+      .toBe('{{artist:foo}}, {{bar}}')
     expect(editArtistString('((foo)), [bar]', { ...options, format: 'creative', bracketStyle: 'square' }, () => 0).text)
       .toBe('[[foo]], [bar]')
-    expect(editArtistString(input, { ...options, format: 'standard' }).text).toBe(input)
+    expect(editArtistString(input, { ...options, format: 'standard' }).text).toBe('(artist:foo:1.25), (bar:0.8)')
   })
 
   it('rerolls creative nesting but refuses to reroll weightless plain text', () => {

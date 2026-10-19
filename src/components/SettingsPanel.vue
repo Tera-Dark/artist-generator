@@ -43,6 +43,10 @@ function reset() {
           <span><strong>每次最多画师数</strong><small>默认 {{ HARD_MAX_ARTISTS }}，硬上限 {{ HARD_MAX_ARTISTS }}；即使导入异常配置也会钳制。</small></span>
           <input id="max-count" v-model.number="preferences.generator.maxCount" type="number" min="1" :max="HARD_MAX_ARTISTS" step="1" @change="normalizeGeneratorPreferences" />
         </label>
+        <label class="settings-row settings-control-row" for="weight-precision">
+          <span><strong>随机权重保留小数位</strong><small>默认 1 位，可选 2 位；适用于生成器、编辑器和专业混合。</small></span>
+          <select id="weight-precision" v-model.number="preferences.generator.weightPrecision"><option :value="1">1 位（默认）</option><option :value="2">2 位</option></select>
+        </label>
         <label class="settings-row">
           <span><strong>避开上一组画师</strong><small>候选充足时尽量不重复上一组；不足时自动回退，不会卡住。</small></span>
           <input v-model="preferences.avoidLastArtists" type="checkbox" role="switch" aria-label="避开上一组画师" />
