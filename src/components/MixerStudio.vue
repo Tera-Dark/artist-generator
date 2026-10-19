@@ -88,6 +88,15 @@ function toggleLock(name: string) {
   selected.value = selected.value.map(a => a.name === name ? { ...a, locked: !a.locked } : a)
   presetId.value = ''
 }
+function move(name: string, step: -1 | 1) {
+  const from = selected.value.findIndex(a => a.name === name)
+  const to = from + step
+  if (from < 1 || to < 1 || to >= selected.value.length) return
+  const next = [...selected.value]
+  ;[next[from], next[to]] = [next[to]!, next[from]!]
+  selected.value = next
+  presetId.value = ''
+}
 function remove(name: string) {
   selected.value = selected.value.filter(a => a.name !== name)
   presetId.value = ''
@@ -273,6 +282,8 @@ async function importFile(event: Event) {
           <div class="studio-artist-top">
             <span class="studio-role">{{ item.role === 'main' ? '主' : '辅' }}</span>
             <strong :title="item.name">{{ item.name }}</strong>
+            <button v-if="item.role === 'support'" type="button" class="studio-minor" :aria-label="'上移 '+item.name" @click="move(item.name, -1)">↑</button>
+            <button v-if="item.role === 'support'" type="button" class="studio-minor" :aria-label="'下移 '+item.name" @click="move(item.name, 1)">↓</button>
             <button type="button" class="studio-minor" :aria-label="item.locked ? '解除锁定' : '锁定画师'" @click="toggleLock(item.name)">{{ item.locked ? '🔒 锁定' : '锁定' }}</button>
             <button type="button" class="studio-minor" :aria-label="'移除 '+item.name" @click="remove(item.name)">移除</button>
           </div>
@@ -333,11 +344,11 @@ async function importFile(event: Event) {
 </template>
 
 <style scoped>
-.studio { max-width:1120px;margin:0 auto;padding:16px 0 70px;color:var(--text-primary,inherit) }
+.studio { max-width:1120px;margin:0 auto;padding:16px 0 70px;color:var(--ink,inherit) }
 .studio-eyebrow { font-size:12px;letter-spacing:.16em;font-weight:700;color:#548e80 }
 .studio h1 { font-size:clamp(29px,4vw,44px);line-height:1.15;margin:8px 0 12px }
 .dot { color:#479b84 }
-.studio-desc,.studio-help { color:var(--text-muted,#87918d);line-height:1.65;font-size:13px }
+.studio-desc,.studio-help { color:var(--muted,#87918d);line-height:1.65;font-size:13px }
 .studio-desc { margin-bottom:22px;font-size:15px }
 .studio-grid { display:grid;grid-template-columns:1fr 1fr;gap:16px }
 .studio-panel { border:1px solid #95a79c45;border-radius:16px;padding:22px;margin-bottom:16px;background:var(--surface,#ffffff08);min-width:0 }
@@ -345,8 +356,8 @@ async function importFile(event: Event) {
 .studio-row { display:flex;align-items:end;gap:12px;flex-wrap:wrap }
 .studio-grow { flex:1;min-width:155px }.studio-small { width:104px }
 .studio-field { display:flex;flex-direction:column;gap:8px;font-size:12px;font-weight:600;min-width:0 }
-.studio input:not([type=checkbox]),.studio select { padding:10px 12px;background:var(--surface-secondary,#f5f8f6);color:inherit;border:1px solid #95a79c77;border-radius:8px;width:100%;min-height:40px }
-.studio button { border:1px solid #9ab2a44f;border-radius:8px;padding:9px 12px;font-weight:600;font-size:12px;background:var(--surface-secondary,#f5f8f6);color:inherit;cursor:pointer }
+.studio input:not([type=checkbox]),.studio select { padding:10px 12px;background:var(--soft,#f5f8f6);color:inherit;border:1px solid #95a79c77;border-radius:8px;width:100%;min-height:40px }
+.studio button { border:1px solid #9ab2a44f;border-radius:8px;padding:9px 12px;font-weight:600;font-size:12px;background:var(--soft,#f5f8f6);color:inherit;cursor:pointer }
 .studio button:hover { border-color:#59a38a }.studio button:disabled { opacity:.45;cursor:not-allowed }
 .studio button.studio-primary { background:#317e6b;color:white;border-color:#317e6b }
 .studio-actions { display:flex;gap:8px;flex-wrap:wrap;margin-top:14px }
