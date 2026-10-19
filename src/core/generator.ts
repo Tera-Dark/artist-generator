@@ -21,6 +21,8 @@ export interface GeneratorOptions {
   bracketStyle: BracketStyle
   bracketLevels: number // 0 = random, otherwise 1–5
   withPrefix: boolean
+  weightPrecision: 1 | 2
+  excludeNumericSuffix: boolean
 }
 
 export interface GeneratorResult {
@@ -42,6 +44,8 @@ export const DEFAULT_OPTIONS: GeneratorOptions = {
   bracketStyle: 'paren',
   bracketLevels: 0,
   withPrefix: false,
+  weightPrecision: 1,
+  excludeNumericSuffix: true,
 }
 
 const modes: GeneratorMode[] = ['pure', 'standard', 'creative', 'nai']
@@ -75,6 +79,8 @@ export function normalizeOptions(value: unknown): GeneratorOptions {
     bracketStyle: brackets.includes(input.bracketStyle as BracketStyle) ? input.bracketStyle as BracketStyle : DEFAULT_OPTIONS.bracketStyle,
     bracketLevels: Math.trunc(boundedNumber(input.bracketLevels, DEFAULT_OPTIONS.bracketLevels, 0, 5)),
     withPrefix: typeof input.withPrefix === 'boolean' ? input.withPrefix : DEFAULT_OPTIONS.withPrefix,
+    weightPrecision: input.weightPrecision === 2 ? 2 : 1,
+    excludeNumericSuffix: typeof input.excludeNumericSuffix === 'boolean' ? input.excludeNumericSuffix : DEFAULT_OPTIONS.excludeNumericSuffix,
   }
 }
 
@@ -84,20 +90,21 @@ function unitRandom(random: () => number) {
 }
 
 function formatName(name: string, options: GeneratorOptions, random: () => number) {
-  let item = name
+  const prefixedName = options.withPrefix ? `artist:${name}` : name
+  let item = prefixedName
   if (options.mode === 'standard' || options.mode === 'nai') {
     const weight = options.weightMin + unitRandom(random) * (options.weightMax - options.weightMin)
-    const rounded = weight.toFixed(1)
-    item = options.mode === 'nai' ? `${rounded}::${name} ::` : `(${name}:${rounded})`
+    const rounded = weight.toFixed(options.weightPrecision)
+    item = options.mode === 'nai' ? `${rounded}::${prefixedName} ::` : `(${prefixedName}:${rounded})`
   } else if (options.mode === 'creative') {
     const pairs: Record<BracketStyle, [string, string]> = {
       paren: ['(', ')'], curly: ['{', '}'], square: ['[', ']'],
     }
     const [open, close] = pairs[options.bracketStyle]
     const levels = options.bracketLevels || 1 + Math.floor(unitRandom(random) * 5)
-    item = `${open.repeat(levels)}${name}${close.repeat(levels)}`
+    item = `${open.repeat(levels)}${prefixedName}${close.repeat(levels)}`
   }
-  return options.withPrefix ? `artist:${item}` : item
+  return item
 }
 
 /** Draw distinct artists, optionally avoiding the previous result when enough choices remain. */
@@ -112,6 +119,7 @@ export function generateArtistString(
   const eligible = artists.filter((artist) => {
     if (!artist || typeof artist.name !== 'string' || !artist.name.trim()) return false
     if (typeof artist.post_count !== 'number' || !Number.isFinite(artist.post_count) || artist.post_count < options.minPosts) return false
+    if (options.excludeNumericSuffix && /\d$/.test(artist.name.trim())) return false
     if (seen.has(artist.name)) return false
     seen.add(artist.name)
     return true
