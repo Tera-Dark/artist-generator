@@ -219,9 +219,12 @@ const vMasonry: Directive<HTMLElement> = {
       <div v-else-if="view === 'text'" class="artist-list">
         <article v-for="(artist, index) in visible" :id="`artist-card-${(page - 1) * pageSize + index}`" :key="artist.name" class="artist-row" :class="{ 'is-picked': lastPickedIndex === (page - 1) * pageSize + index }" tabindex="-1">
           <div class="artist-row-top"><span class="artist-index">{{ (page - 1) * pageSize + index + 1 }}</span><h2>{{ artist.name }}</h2><span class="post-count">{{ number.format(artist.post_count) }} 作品</span></div>
-          <p class="artist-aliases"><span class="detail-label">别名 / 词缀</span> {{ artist.other_names.length ? artist.other_names.join(' · ') : '无' }}</p>
+          <details v-if="artist.other_names.length" class="artist-alias-details">
+            <summary>别名 · {{ artist.other_names.length }} 条 <span>{{ artist.other_names.slice(0, 2).join(' · ') }}{{ artist.other_names.length > 2 ? '…' : '' }}</span></summary>
+            <p>{{ artist.other_names.join(' · ') }}</p>
+          </details>
+          <p v-else class="artist-aliases">暂无别名</p>
           <div class="artist-row-bottom">
-            <a :href="artist.danbooru_url" target="_blank" rel="noopener noreferrer" class="artist-url">{{ artist.danbooru_url }} <ExternalLink :size="13" aria-hidden="true" /></a>
             <ArtistQuickActions :name="artist.name" :url="artist.danbooru_url" @choose="(name, role) => emit('choose', name, role)" @feedback="flash" />
           </div>
         </article>
