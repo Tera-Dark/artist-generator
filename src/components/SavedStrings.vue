@@ -156,7 +156,7 @@ async function clearImages() {
 
     <section class="data-panel panel" aria-labelledby="data-heading">
       <div class="data-panel-header"><div><p class="section-eyebrow">BACKUP & STORAGE</p><h2 id="data-heading">本地数据管理</h2></div><Database :size="21" aria-hidden="true" /></div>
-      <p>完整保留历史和收藏请使用 JSON 备份；只想批量带走好用的收藏串，选择 TXT（一行一组）。专业混合中的评分、黑名单与结构化预设请在「专业混合」页面单独导出。</p>
+      <p>完整保留历史和收藏请使用 JSON 备份；只想批量带走好用的收藏串，选择 TXT（一行一组，可在「专业混合」批量导入）。个人评分、黑名单与结构化预设需要在「专业混合」页面另行备份。</p>
       <div class="data-actions">
         <button type="button" @click="exportData"><Download :size="17" aria-hidden="true" /> 备份 JSON</button>
         <button type="button" :disabled="!vault.favorites.value.length" @click="exportFavoriteStrings"><Download :size="17" aria-hidden="true" /> 批量导出收藏 TXT</button>
