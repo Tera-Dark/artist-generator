@@ -2,13 +2,14 @@
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { BookOpen, History, Moon, Settings2, Sparkles, Sun, WandSparkles } from 'lucide-vue-next'
 import Workspace from '@/components/Workspace.vue'
+import MixerStudio from '@/components/MixerStudio.vue'
 import ArtistLibrary from '@/components/ArtistLibrary.vue'
 import SavedStrings from '@/components/SavedStrings.vue'
 import SettingsPanel from '@/components/SettingsPanel.vue'
 import OnboardingTour from '@/components/OnboardingTour.vue'
 import { useVault } from '@/composables/useVault'
 
-type Tab = 'workspace' | 'library' | 'saved' | 'settings'
+type Tab = 'workspace' | 'mixer' | 'library' | 'saved' | 'settings'
 type ThemeChoice = 'system' | 'light' | 'dark'
 const THEME_KEY = 'artist-generator-theme'
 const TOUR_KEY = 'artist-generator-tour-v1'
@@ -17,6 +18,7 @@ const theme = ref<'light' | 'dark'>('light')
 const themeChoice = ref<ThemeChoice>('system')
 const showTour = ref(false)
 const editRequest = ref<{ text: string; nonce: number } | null>(null)
+const mixRequest = ref<{ name: string; role: 'main' | 'support'; nonce: number } | null>(null)
 let nextRequest = 0
 let themeMedia: MediaQueryList | null = null
 let tourTimer: ReturnType<typeof setTimeout> | undefined
@@ -45,6 +47,11 @@ function toggleTheme() { setThemeChoice(theme.value === 'light' ? 'dark' : 'ligh
 async function edit(text: string) {
   editRequest.value = { text, nonce: ++nextRequest }
   activeTab.value = 'workspace'
+  await nextTick()
+}
+async function chooseArtist(name: string, role: 'main' | 'support') {
+  mixRequest.value = { name, role, nonce: ++nextRequest }
+  activeTab.value = 'mixer'
   await nextTick()
 }
 function hasSeenTour() {
@@ -93,6 +100,7 @@ onUnmounted(() => {
         </button>
         <nav class="top-nav" aria-label="主要功能">
           <button type="button" :aria-current="activeTab === 'workspace' ? 'page' : undefined" @click="activeTab = 'workspace'"><WandSparkles :size="16" aria-hidden="true" /> 工作区</button>
+          <button type="button" :aria-current="activeTab === 'mixer' ? 'page' : undefined" @click="activeTab = 'mixer'"><Sparkles :size="16" aria-hidden="true" /> 专业混合</button>
           <button type="button" :aria-current="activeTab === 'library' ? 'page' : undefined" @click="activeTab = 'library'"><BookOpen :size="16" aria-hidden="true" /> 画师库</button>
           <button type="button" :aria-current="activeTab === 'saved' ? 'page' : undefined" @click="activeTab = 'saved'"><History :size="16" aria-hidden="true" /> 我的串</button>
         </nav>
@@ -110,7 +118,8 @@ onUnmounted(() => {
     <main id="main" class="main-content" :class="{ 'wide-content': activeTab !== 'workspace' }">
       <KeepAlive>
         <Workspace v-if="activeTab === 'workspace'" :edit-request="editRequest" />
-        <ArtistLibrary v-else-if="activeTab === 'library'" @edit="edit" />
+        <MixerStudio v-else-if="activeTab === 'mixer'" :request="mixRequest" />
+        <ArtistLibrary v-else-if="activeTab === 'library'" @edit="edit" @choose="chooseArtist" />
         <SavedStrings v-else-if="activeTab === 'saved'" @edit="edit" />
         <SettingsPanel v-else :theme-choice="themeChoice" @set-theme="setThemeChoice" @replay-tour="replayTour" />
       </KeepAlive>
