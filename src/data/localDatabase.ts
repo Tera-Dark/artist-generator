@@ -130,7 +130,9 @@ export async function replaceStudioData(profiles: ArtistProfile[], presets: MixP
   const db = await database()
   const tx = db.transaction(['studioProfiles', 'studioPresets'], 'readwrite')
   await Promise.all([tx.objectStore('studioProfiles').clear(), tx.objectStore('studioPresets').clear()])
-  for (const profile of profiles) await tx.objectStore('studioProfiles').put(profile)
-  for (const preset of presets) await tx.objectStore('studioPresets').put(preset)
+  await Promise.all([
+    ...profiles.map(profile => tx.objectStore('studioProfiles').put(profile)),
+    ...presets.map(preset => tx.objectStore('studioPresets').put(preset)),
+  ])
   await tx.done
 }
