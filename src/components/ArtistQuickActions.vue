@@ -99,7 +99,7 @@ function clickBackdrop(event: MouseEvent) {
 </template>
 
 <style scoped>
-.artist-quick-actions { min-width:0; width:100%; }
+.artist-quick-actions { min-width:0; width:100%; container-type:inline-size; }
 .artist-action-primary { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:8px; }
 .artist-action { min-width:0; min-height:46px; display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:9px 10px; border:1px solid var(--line); border-radius:11px; color:var(--ink); background:var(--soft); font-size:13px; font-weight:650; line-height:1.25; cursor:pointer; }
 .artist-action svg { flex:none; }
@@ -127,9 +127,8 @@ function clickBackdrop(event: MouseEvent) {
 .artist-rating-footer { display:grid; grid-template-columns:1fr 1.5fr; gap:10px; margin-top:26px; }
 .artist-rating-footer button { min-height:48px; border:1px solid var(--line); border-radius:11px; color:var(--ink); background:var(--soft); font-size:14px; font-weight:650; }
 .artist-rating-footer .artist-rating-confirm { display:flex; align-items:center; justify-content:center; gap:7px; color:var(--button-ink); background:var(--button); border-color:var(--button); }
-@media (min-width:960px) {
-  .artist-action-primary { grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; }
-  .artist-action { padding:8px 6px; min-height:42px; font-size:12px; }
+@container (min-width:520px) {
+  .artist-action-primary { grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
 }
 @media (max-width:640px) {
   .artist-rating-dialog { width:100%; max-width:100%; max-height:min(90dvh,700px); margin:auto 0 0; border-radius:22px 22px 0 0; padding-bottom:env(safe-area-inset-bottom); }
