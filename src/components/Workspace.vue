@@ -130,6 +130,7 @@ function process(action: EditAction) {
     const edited = editArtistString(editorInput.value, {
       action, format: targetFormat.value, min: editMin.value, max: editMax.value,
       bracketStyle: editBracketStyle.value, bracketLevels: editBracketLevels.value,
+      precision: options.weightPrecision,
     })
     editorOutput.value = edited.text
     editorNames.value = edited.names
@@ -229,7 +230,7 @@ onUnmounted(() => { if (messageTimer) clearTimeout(messageTimer) })
               <span aria-hidden="true">—</span>
               <input v-model.number="options.weightMax" aria-label="生成最大权重" type="number" min="0" max="2" step="0.1" @change="normalizeCurrentOptions" />
             </div>
-            <span class="field-help">可设置 0.0 至 2.0</span>
+            <span class="field-help">可设置 0.0 至 2.0；默认保留一位小数，设置中可改两位。</span>
           </div>
           <template v-if="options.mode === 'creative'">
             <div class="advanced-field"><label for="bracket-style">括号类型</label><div class="select-wrap compact-select"><select id="bracket-style" v-model="options.bracketStyle">
@@ -240,6 +241,7 @@ onUnmounted(() => { if (messageTimer) clearTimeout(messageTimer) })
             </select><ChevronDown :size="16" aria-hidden="true" /></div></div>
           </template>
           <label class="prefix-option"><input v-model="options.withPrefix" type="checkbox" />为每位画师添加 <code>artist:</code> 前缀</label>
+          <label class="prefix-option"><input v-model="options.excludeNumericSuffix" type="checkbox" />排除名称末尾带数字的画师</label>
         </div>
       </div>
       <div class="composer-footer">
