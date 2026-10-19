@@ -68,7 +68,6 @@ function selectName(name: string, role: 'main' | 'support' = activeRole.value) {
     selected.value = [...without, newArtist(name, 'support')]
   }
   query.value = ''
-  presetId.value = ''
 }
 function applyRequest(request: NonNullable<typeof props.request>) {
   if (!available.value.length) return
@@ -87,11 +86,9 @@ function editWeight(name: string, value: string) {
   const n = Number(value)
   if (!Number.isFinite(n)) return
   selected.value = selected.value.map(a => a.name === name ? { ...a, weight: Math.max(0, Math.min(2, n)) } : a)
-  presetId.value = ''
 }
 function toggleLock(name: string) {
   selected.value = selected.value.map(a => a.name === name ? { ...a, locked: !a.locked } : a)
-  presetId.value = ''
 }
 function move(name: string, step: -1 | 1) {
   const from = selected.value.findIndex(a => a.name === name)
@@ -100,11 +97,9 @@ function move(name: string, step: -1 | 1) {
   const next = [...selected.value]
   ;[next[from], next[to]] = [next[to]!, next[from]!]
   selected.value = next
-  presetId.value = ''
 }
 function remove(name: string) {
   selected.value = selected.value.filter(a => a.name !== name)
-  presetId.value = ''
 }
 function candidatePool(role: 'main' | 'support', exclude: Set<string>) {
   const profiles = new Map(studio.profiles.value.map(p => [p.name, p]))
@@ -148,6 +143,7 @@ function shuffle(onlyAux = false) {
     }
     selected.value = [main, ...supports]
     presetId.value = ''
+    presetName.value = ''
     announce('已更新组合；锁定的画师保持不变')
   } catch (cause) { announce(cause instanceof Error ? cause.message : '随机组合失败', true) }
 }
@@ -155,7 +151,6 @@ function rerollWeights() {
   selected.value = selected.value.map(a => a.locked ? a : {
     ...a, weight: a.role === 'main' ? randomWeight(1, 1.3) : randomWeight(0.3, 0.8),
   })
-  presetId.value = ''
   announce('已更新未锁定画师的权重')
 }
 async function copyOutput() {
@@ -178,6 +173,11 @@ async function save() {
     }
     announce(studio.status.value === 'ready' ? '已持久保存组合，并加入「我的串」收藏' : '仅本次会话暂存，建议导出 JSON')
   } catch (cause) { announce(cause instanceof Error ? cause.message : '保存失败', true) }
+}
+function saveAsCopy() {
+  presetId.value = ''
+  presetName.value = presetName.value.trim() ? `${presetName.value.trim()}（副本）` : ''
+  void save()
 }
 function restore(p: MixPreset) {
   selected.value = p.artists.map(a => ({ ...a }))
@@ -324,7 +324,7 @@ async function importFile(event: Event) {
           </label>
           <label class="studio-inline"><input v-model="withPrefix" type="checkbox" /> artist: 前缀</label>
         </div>
-        <p class="studio-help">权重保留 {{ precision }} 位小数（设置中修改）；单独调权或锁定后，可只重抽其他画师。</p>
+        <p class="studio-help">权重保留 {{ precision }} 位小数（设置中修改）；锁定后可只重抽其他画师。载入旧组合后修改会更新原组合，也可另存副本。</p>
       </section>
     </div>
     <section class="studio-panel studio-result">
@@ -335,7 +335,8 @@ async function importFile(event: Event) {
           <input v-model="presetName" maxlength="100" placeholder="例如：清透浅色系肖像" />
         </label>
         <button type="button" @click="copyOutput" :disabled="!output">复制画师串</button>
-        <button type="button" class="studio-primary" @click="save" :disabled="!output">保存精选组合</button>
+        <button type="button" class="studio-primary" @click="save" :disabled="!output">{{ presetId ? '更新精选组合' : '保存精选组合' }}</button>
+        <button v-if="presetId" type="button" :disabled="!output" @click="saveAsCopy">另存为新组合</button>
       </div>
     </section>
     <section class="studio-panel">
@@ -360,7 +361,7 @@ async function importFile(event: Event) {
     </section>
     <div v-if="output" class="studio-mobile-shortcuts" aria-label="当前组合快捷操作">
       <button type="button" @click="copyOutput">复制当前画师串</button>
-      <button type="button" class="studio-primary" @click="save">保存组合</button>
+      <button type="button" class="studio-primary" @click="save">{{ presetId ? '更新组合' : '保存组合' }}</button>
     </div>
     <p v-if="notice" class="studio-message" :class="{ 'studio-error': error }" role="status">{{ notice }}</p>
   </div>
