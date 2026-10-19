@@ -2,15 +2,14 @@
 import { computed, nextTick, onActivated, onDeactivated, onMounted, onUnmounted, reactive, ref, shallowRef, watch, type Directive } from 'vue'
 import { ArrowLeft, ArrowRight, ArrowUp, ChevronDown, Copy, ExternalLink, Grid2X2, ImageOff, List, ListFilter, Search, Shuffle, X } from 'lucide-vue-next'
 import ArtistPreview from './ArtistPreview.vue'
+import ArtistQuickActions from './ArtistQuickActions.vue'
 import { loadArtistDetails, type ArtistDetail } from '@/data/artistLibrary'
 import { buildSearchIndex, DEFAULT_FILTERS, filterArtists, type SearchIndexEntry } from '@/core/artistFilters'
 import { parsePageNumber, pickPageItem } from '@/core/pagination'
 import { usePreferences } from '@/composables/usePreferences'
-import { useStudio } from '@/composables/useStudio'
 import { copyText } from '@/utils/clipboard'
 
 const emit = defineEmits<{ edit: [text: string]; choose: [name: string, role: 'main' | 'support'] }>()
-const studio = useStudio()
 const preferences = usePreferences()
 const entries = shallowRef<readonly ArtistDetail[]>([])
 const searchIndex = shallowRef<SearchIndexEntry[]>([])
@@ -72,7 +71,7 @@ function stopListeningForScroll() {
   window.removeEventListener('scroll', updateScrollState)
   showBackToFilters.value = false
 }
-onMounted(() => { void load(); void studio.initStudio(); listenForScroll() })
+onMounted(() => { void load(); listenForScroll() })
 onActivated(listenForScroll)
 onDeactivated(stopListeningForScroll)
 onUnmounted(() => {
@@ -103,16 +102,6 @@ function flash(message: string) {
   notice.value = message
   if (noticeTimer) clearTimeout(noticeTimer)
   noticeTimer = setTimeout(() => { notice.value = '' }, 2200)
-}
-function updateStatus(name: string, status: 'favorite' | 'neutral' | 'blocked') {
-  void studio.updateProfile(name, { status }).then(() => flash(status === 'favorite' ? '已加入喜欢的画师池' : status === 'blocked' ? '已加入排除名单' : '已取消个人标记')).catch(() => flash('标记画师失败'))
-}
-function rate(name: string, score: string) {
-  void studio.updateProfile(name, { rating: score ? Number(score) : null }).then(() => flash('评分已保存')).catch(() => flash('评分保存失败'))
-}
-async function copyName(name: string) {
-  try { await copyText(name); flash('已复制画师名') }
-  catch { flash('复制失败，请手动选中画师名') }
 }
 function scrollBehavior(): ScrollBehavior {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
@@ -233,14 +222,7 @@ const vMasonry: Directive<HTMLElement> = {
           <p class="artist-aliases"><span class="detail-label">别名 / 词缀</span> {{ artist.other_names.length ? artist.other_names.join(' · ') : '无' }}</p>
           <div class="artist-row-bottom">
             <a :href="artist.danbooru_url" target="_blank" rel="noopener noreferrer" class="artist-url">{{ artist.danbooru_url }} <ExternalLink :size="13" aria-hidden="true" /></a>
-            <div class="row-actions">
-              <label class="studio-inline-rate">评分 <select :value="studio.profileOf(artist.name)?.rating ?? ''" @change="rate(artist.name, ($event.target as HTMLSelectElement).value)"><option value="">—</option><option v-for="i in 21" :key="i" :value="(i-1)/2">{{ ((i-1)/2).toFixed(1) }}</option></select></label>
-              <button type="button" @click="updateStatus(artist.name, studio.profileOf(artist.name)?.status === 'favorite' ? 'neutral' : 'favorite')">{{ studio.profileOf(artist.name)?.status === 'favorite' ? '★ 已喜欢' : '☆ 喜欢' }}</button>
-              <button type="button" @click="updateStatus(artist.name, studio.profileOf(artist.name)?.status === 'blocked' ? 'neutral' : 'blocked')">{{ studio.profileOf(artist.name)?.status === 'blocked' ? '取消排除' : '排除' }}</button>
-              <button type="button" @click="emit('choose', artist.name, 'main')">设为主画师</button>
-              <button type="button" @click="emit('choose', artist.name, 'support')">加入辅助</button>
-              <button type="button" @click="copyName(artist.name)"><Copy :size="14" aria-hidden="true" /> 复制</button>
-            </div>
+            <ArtistQuickActions :name="artist.name" :url="artist.danbooru_url" @choose="(name, role) => emit('choose', name, role)" @feedback="flash" />
           </div>
         </article>
       </div>
@@ -251,13 +233,7 @@ const vMasonry: Directive<HTMLElement> = {
           <div class="artist-card-body">
             <div class="artist-card-title"><h2 :title="artist.name">{{ artist.name }}</h2><span>{{ number.format(artist.post_count) }}</span></div>
             <p :title="artist.other_names.join(' · ')">{{ artist.other_names.length ? artist.other_names.join(' · ') : '无其他别名' }}</p>
-            <div class="artist-card-actions">
-              <button type="button" @click="emit('choose', artist.name, 'main')">设为主画师</button>
-              <button type="button" @click="emit('choose', artist.name, 'support')">加入辅助</button>
-              <button type="button" @click="updateStatus(artist.name, studio.profileOf(artist.name)?.status === 'favorite' ? 'neutral' : 'favorite')">{{ studio.profileOf(artist.name)?.status === 'favorite' ? '★ 已喜欢' : '☆ 喜欢' }}</button>
-              <button type="button" @click="updateStatus(artist.name, studio.profileOf(artist.name)?.status === 'blocked' ? 'neutral' : 'blocked')">{{ studio.profileOf(artist.name)?.status === 'blocked' ? '取消排除' : '排除' }}</button>
-              <a :href="artist.danbooru_url" target="_blank" rel="noopener noreferrer">画师主页 <ExternalLink :size="13" aria-hidden="true" /></a>
-            </div>
+            <ArtistQuickActions :name="artist.name" :url="artist.danbooru_url" @choose="(name, role) => emit('choose', name, role)" @feedback="flash" />
           </div>
         </article>
       </div>
