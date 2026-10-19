@@ -28,6 +28,11 @@ const notice = ref('')
 const error = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
 const savedQuery = ref('')
+const expandedProfiles = ref<string[]>([])
+function toggleProfile(name: string) {
+  expandedProfiles.value = expandedProfiles.value.includes(name)
+    ? expandedProfiles.value.filter(item => item !== name) : [...expandedProfiles.value, name]
+}
 
 const precision = computed(() => prefs.generator.weightPrecision)
 const nameSet = computed(() => new Set(available.value.map(a => a.name)))
@@ -63,7 +68,6 @@ function selectName(name: string, role: 'main' | 'support' = activeRole.value) {
     selected.value = [...without, newArtist(name, 'support')]
   }
   query.value = ''
-  presetId.value = ''
 }
 function applyRequest(request: NonNullable<typeof props.request>) {
   if (!available.value.length) return
@@ -82,11 +86,9 @@ function editWeight(name: string, value: string) {
   const n = Number(value)
   if (!Number.isFinite(n)) return
   selected.value = selected.value.map(a => a.name === name ? { ...a, weight: Math.max(0, Math.min(2, n)) } : a)
-  presetId.value = ''
 }
 function toggleLock(name: string) {
   selected.value = selected.value.map(a => a.name === name ? { ...a, locked: !a.locked } : a)
-  presetId.value = ''
 }
 function move(name: string, step: -1 | 1) {
   const from = selected.value.findIndex(a => a.name === name)
@@ -95,11 +97,9 @@ function move(name: string, step: -1 | 1) {
   const next = [...selected.value]
   ;[next[from], next[to]] = [next[to]!, next[from]!]
   selected.value = next
-  presetId.value = ''
 }
 function remove(name: string) {
   selected.value = selected.value.filter(a => a.name !== name)
-  presetId.value = ''
 }
 function candidatePool(role: 'main' | 'support', exclude: Set<string>) {
   const profiles = new Map(studio.profiles.value.map(p => [p.name, p]))
@@ -143,6 +143,7 @@ function shuffle(onlyAux = false) {
     }
     selected.value = [main, ...supports]
     presetId.value = ''
+    presetName.value = ''
     announce('已更新组合；锁定的画师保持不变')
   } catch (cause) { announce(cause instanceof Error ? cause.message : '随机组合失败', true) }
 }
@@ -150,7 +151,6 @@ function rerollWeights() {
   selected.value = selected.value.map(a => a.locked ? a : {
     ...a, weight: a.role === 'main' ? randomWeight(1, 1.3) : randomWeight(0.3, 0.8),
   })
-  presetId.value = ''
   announce('已更新未锁定画师的权重')
 }
 async function copyOutput() {
@@ -174,9 +174,15 @@ async function save() {
     announce(studio.status.value === 'ready' ? '已持久保存组合，并加入「我的串」收藏' : '仅本次会话暂存，建议导出 JSON')
   } catch (cause) { announce(cause instanceof Error ? cause.message : '保存失败', true) }
 }
+function saveAsCopy() {
+  presetId.value = ''
+  presetName.value = presetName.value.trim() ? `${presetName.value.trim()}（副本）` : ''
+  void save()
+}
 function restore(p: MixPreset) {
   selected.value = p.artists.map(a => ({ ...a }))
   format.value = p.format
+  prefs.generator.weightPrecision = p.precision
   withPrefix.value = p.withPrefix
   presetName.value = p.title
   presetId.value = p.id
@@ -200,8 +206,10 @@ function updateNote(name: string, note: string) {
   void studio.updateProfile(name, { note }).catch(e => announce(String(e), true))
 }
 function updateRating(name: string, raw: string) {
-  const rating = raw === '' ? null : Number(raw)
-  void studio.updateProfile(name, { rating }).catch(e => announce(String(e), true))
+  const parsed = raw === '' ? null : Number(raw)
+  if (parsed !== null && !Number.isFinite(parsed)) { announce('请输入有效评分', true); return }
+  const rating = parsed === null ? null : Math.min(10, Math.max(0, Math.round(parsed * 2) / 2))
+  void studio.updateProfile(name, { rating }).then(() => announce('评分已保存')).catch(e => announce(String(e), true))
 }
 function download(content: string, fileName: string, mime: string) {
   const url = URL.createObjectURL(new Blob([content], { type: mime }))
@@ -282,22 +290,33 @@ async function importFile(event: Event) {
           <div class="studio-artist-top">
             <span class="studio-role">{{ item.role === 'main' ? '主' : '辅' }}</span>
             <strong :title="item.name">{{ item.name }}</strong>
-            <button v-if="item.role === 'support'" type="button" class="studio-minor" :aria-label="'上移 '+item.name" @click="move(item.name, -1)">↑</button>
-            <button v-if="item.role === 'support'" type="button" class="studio-minor" :aria-label="'下移 '+item.name" @click="move(item.name, 1)">↓</button>
-            <button type="button" class="studio-minor" :aria-label="item.locked ? '解除锁定' : '锁定画师'" @click="toggleLock(item.name)">{{ item.locked ? '🔒 锁定' : '锁定' }}</button>
-            <button type="button" class="studio-minor" :aria-label="'移除 '+item.name" @click="remove(item.name)">移除</button>
+            <label class="studio-weight-editor">权重
+              <input type="number" min="0" max="2" inputmode="decimal" :step="precision === 2 ? 0.01 : 0.1" :aria-label="item.name + ' 权重'" :value="decimal(item.weight)" @change="editWeight(item.name, ($event.target as HTMLInputElement).value)" />
+            </label>
           </div>
-          <div class="studio-artist-bottom">
-            <label>权重 <input type="number" min="0" max="2" :step="precision === 2 ? 0.01 : 0.1" :value="decimal(item.weight)" @change="editWeight(item.name, ($event.target as HTMLInputElement).value)" /></label>
-            <label>评分 <select :value="studio.profileOf(item.name)?.rating ?? ''" @change="updateRating(item.name, ($event.target as HTMLSelectElement).value)">
-              <option value="">未评分</option><option v-for="i in 21" :key="i" :value="(i-1)/2">{{ ((i-1)/2).toFixed(1) }}</option>
-            </select></label>
-            <label>适用角色 <select :value="studio.profileOf(item.name)?.role ?? 'either'" @change="updateRole(item.name, ($event.target as HTMLSelectElement).value as 'main' | 'support' | 'either')"><option value="either">主辅均可</option><option value="main">仅主画师</option><option value="support">仅辅助</option></select></label>
-            <label>个人池 <select :value="studio.profileOf(item.name)?.status ?? 'neutral'" @change="updateStatus(item.name, ($event.target as HTMLSelectElement).value as 'favorite' | 'neutral' | 'blocked')">
-              <option value="neutral">普通</option><option value="favorite">喜欢</option><option value="blocked">排除</option>
-            </select></label>
+          <div class="studio-artist-tools">
+            <button v-if="item.role === 'support'" type="button" :aria-label="'上移 '+item.name" :disabled="selected.findIndex(a => a.name === item.name) <= 1" @click="move(item.name, -1)">↑ 上移</button>
+            <button v-if="item.role === 'support'" type="button" :aria-label="'下移 '+item.name" :disabled="selected.findIndex(a => a.name === item.name) === selected.length - 1" @click="move(item.name, 1)">↓ 下移</button>
+            <button type="button" :aria-pressed="item.locked" @click="toggleLock(item.name)">{{ item.locked ? '🔒 已锁定' : '锁定' }}</button>
+            <button type="button" :aria-expanded="expandedProfiles.includes(item.name)" @click="toggleProfile(item.name)">{{ expandedProfiles.includes(item.name) ? '收起资料' : '个人资料' }}</button>
+            <button type="button" class="studio-danger" :aria-label="'移除 '+item.name" @click="remove(item.name)">移除</button>
           </div>
-          <label class="studio-field studio-top-gap">个人备注 <input type="text" maxlength="500" :value="studio.profileOf(item.name)?.note ?? ''" placeholder="画风特点、混合表现……" @change="updateNote(item.name, ($event.target as HTMLInputElement).value)" /></label>
+          <div v-if="expandedProfiles.includes(item.name)" class="studio-profile-details">
+            <div class="studio-artist-bottom">
+              <label>评分
+                <input type="number" inputmode="decimal" min="0" max="10" step="0.5" :aria-label="item.name + ' 评分'" :value="studio.profileOf(item.name)?.rating ?? ''" placeholder="未评分" @change="updateRating(item.name, ($event.target as HTMLInputElement).value)" />
+              </label>
+              <label>适用角色
+                <select :value="studio.profileOf(item.name)?.role ?? 'either'" @change="updateRole(item.name, ($event.target as HTMLSelectElement).value as 'main' | 'support' | 'either')"><option value="either">主辅均可</option><option value="main">仅主画师</option><option value="support">仅辅助</option></select>
+              </label>
+              <label>个人池
+                <select :value="studio.profileOf(item.name)?.status ?? 'neutral'" @change="updateStatus(item.name, ($event.target as HTMLSelectElement).value as 'favorite' | 'neutral' | 'blocked')"><option value="neutral">普通</option><option value="favorite">喜欢</option><option value="blocked">排除</option></select>
+              </label>
+            </div>
+            <label class="studio-field studio-top-gap">个人备注
+              <input type="text" maxlength="500" :value="studio.profileOf(item.name)?.note ?? ''" placeholder="画风特点、混合表现……" @change="updateNote(item.name, ($event.target as HTMLInputElement).value)" />
+            </label>
+          </div>
         </div>
         <div class="studio-row studio-top-gap">
           <label class="studio-field studio-grow">输出格式
@@ -305,7 +324,7 @@ async function importFile(event: Event) {
           </label>
           <label class="studio-inline"><input v-model="withPrefix" type="checkbox" /> artist: 前缀</label>
         </div>
-        <p class="studio-help">权重保留 {{ precision }} 位小数（设置中修改）；单独调权或锁定后，可只重抽其他画师。</p>
+        <p class="studio-help">权重保留 {{ precision }} 位小数（设置中修改）；锁定后可只重抽其他画师。载入旧组合后修改会更新原组合，也可另存副本。</p>
       </section>
     </div>
     <section class="studio-panel studio-result">
@@ -316,7 +335,8 @@ async function importFile(event: Event) {
           <input v-model="presetName" maxlength="100" placeholder="例如：清透浅色系肖像" />
         </label>
         <button type="button" @click="copyOutput" :disabled="!output">复制画师串</button>
-        <button type="button" class="studio-primary" @click="save" :disabled="!output">保存精选组合</button>
+        <button type="button" class="studio-primary" @click="save" :disabled="!output">{{ presetId ? '更新精选组合' : '保存精选组合' }}</button>
+        <button v-if="presetId" type="button" :disabled="!output" @click="saveAsCopy">另存为新组合</button>
       </div>
     </section>
     <section class="studio-panel">
@@ -339,6 +359,10 @@ async function importFile(event: Event) {
       </div>
       <p v-if="studio.presets.value.length > 40" class="studio-help">最多展示 40 条，可通过搜索找到更早的组合。</p>
     </section>
+    <div v-if="output" class="studio-mobile-shortcuts" aria-label="当前组合快捷操作">
+      <button type="button" @click="copyOutput">复制当前画师串</button>
+      <button type="button" class="studio-primary" @click="save">{{ presetId ? '更新组合' : '保存组合' }}</button>
+    </div>
     <p v-if="notice" class="studio-message" :class="{ 'studio-error': error }" role="status">{{ notice }}</p>
   </div>
 </template>
@@ -356,10 +380,10 @@ async function importFile(event: Event) {
 .studio-row { display:flex;align-items:end;gap:12px;flex-wrap:wrap }
 .studio-grow { flex:1;min-width:155px }.studio-small { width:104px }
 .studio-field { display:flex;flex-direction:column;gap:8px;font-size:12px;font-weight:600;min-width:0 }
-.studio input:not([type=checkbox]),.studio select { padding:10px 12px;background:var(--soft,#f5f8f6);color:inherit;border:1px solid #95a79c77;border-radius:8px;width:100%;min-height:40px }
-.studio button { border:1px solid #9ab2a44f;border-radius:8px;padding:9px 12px;font-weight:600;font-size:12px;background:var(--soft,#f5f8f6);color:inherit;cursor:pointer }
+.studio input:not([type=checkbox]),.studio select { padding:10px 12px;background:var(--soft);color:inherit;border:1px solid var(--line);border-radius:10px;width:100%;min-height:48px;font-size:16px }
+.studio button { min-height:46px;border:1px solid var(--line);border-radius:10px;padding:10px 13px;font-weight:650;font-size:13px;background:var(--soft);color:inherit;cursor:pointer;line-height:1.35 }
 .studio button:hover { border-color:#59a38a }.studio button:disabled { opacity:.45;cursor:not-allowed }
-.studio button.studio-primary { background:#317e6b;color:white;border-color:#317e6b }
+.studio button.studio-primary { background:var(--button);color:var(--button-ink);border-color:var(--button) }
 .studio-actions { display:flex;gap:8px;flex-wrap:wrap;margin-top:14px }
 .studio-top-gap { margin-top:16px }
 .studio-inline { display:flex;align-items:center;gap:7px;font-size:12px;white-space:nowrap;margin:12px 0 0 }
@@ -371,11 +395,16 @@ async function importFile(event: Event) {
 .studio-artist-top { display:flex;gap:8px;align-items:center;flex-wrap:wrap }
 .studio-artist-top strong { flex:1;overflow-wrap:anywhere;font-size:14px }
 .studio-role { background:#317e6b;color:white;border-radius:5px;padding:3px 6px;font-size:11px }
-.studio-artist-top button.studio-minor { border:0;padding:5px;background:transparent }
+.studio-artist-tools { display:flex;flex-wrap:wrap;gap:7px;margin-top:12px }
+.studio-artist-tools button { flex:1;min-width:65px;padding:8px 9px;font-size:12px }
+.studio-artist-tools .studio-danger { color:var(--error) }
+.studio-weight-editor { display:flex;align-items:center;gap:7px;font-size:12px;font-weight:650;white-space:nowrap }
+.studio-weight-editor input { width:80px!important;min-height:44px!important;text-align:center;font-variant-numeric:tabular-nums }
+.studio-profile-details { border-top:1px solid var(--line);padding-top:12px;margin-top:12px }
 .studio-artist-bottom { display:flex;flex-wrap:wrap;gap:10px;margin-top:12px }
 .studio-artist-bottom label { display:flex;align-items:center;gap:6px;font-size:12px }
-.studio-artist-bottom input { max-width:90px }.studio-artist-bottom select { max-width:115px }
-.studio-code { word-break:break-word;line-height:1.9;padding:18px;background:var(--surface-secondary,#f4f7f5);border-radius:10px;font-family:monospace;font-size:13px;min-height:76px }
+.studio-artist-bottom input { max-width:90px }.studio-artist-bottom select { max-width:140px }
+.studio-code { word-break:break-word;line-height:1.8;padding:18px;background:var(--soft);border-radius:10px;font-family:monospace;font-size:13px;min-height:76px;user-select:text }
 .studio-between { justify-content:space-between;align-items:start }.studio-between .studio-actions { margin-top:0 }
 .studio-search { max-width:410px;margin:12px 0 }
 .studio-saved { border-top:1px solid #95a79c44;padding:14px 0 }
@@ -387,5 +416,51 @@ async function importFile(event: Event) {
 .studio-message,.studio-warn { padding:12px;border:1px solid #63a48c;border-radius:8px;margin:10px 0 }
 .studio-error,.studio-warn { border-color:#c38677 }
 .studio-hidden { display:none }
-@media(max-width:800px){.studio-grid{grid-template-columns:1fr}.studio-panel{padding:16px}.studio-row{align-items:stretch}.studio h1{font-size:30px}}
+.studio-mobile-shortcuts { display:none; }
+.studio .studio-saved-title strong { overflow-wrap:anywhere;min-width:0; }
+.studio button:focus-visible { outline:2px solid var(--focus);outline-offset:2px; }
+@media(max-width:960px){
+  .studio-grid{grid-template-columns:1fr}
+  .studio-panel{padding:18px}
+  .studio-row{align-items:stretch}
+  .studio h1{font-size:30px}
+}
+@media(max-width:640px){
+  .studio { padding:0 0 90px; }
+  .studio .studio-desc { line-height:1.6;font-size:13px }
+  .studio .studio-panel { padding:16px;border-radius:14px }
+  .studio-row { display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px }
+  .studio-row > .studio-field:first-child:not(.studio-grow) { min-width:0; }
+  .studio-row > .studio-field.studio-grow { grid-column:1/-1;min-width:0; }
+  .studio-row > .studio-small { width:auto; }
+  .studio-row .studio-inline { margin:0;align-self:center }
+  .studio-actions { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px }
+  .studio-actions button { min-width:0; }
+  .studio-panel > .studio-actions > button:first-child { grid-column:1/-1; }
+  .studio-artist { padding:12px; }
+  .studio-artist-top { display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center }
+  .studio-artist-top strong { font-size:13px;overflow-wrap:anywhere; }
+  .studio-weight-editor { font-size:11px; }
+  .studio-weight-editor input { width:69px!important;padding:6px!important; }
+  .studio-artist-tools { display:grid;grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .studio-artist-tools button { min-width:0; }
+  .studio-artist-bottom { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px; }
+  .studio-artist-bottom label { display:flex;flex-direction:column;align-items:stretch;gap:6px; }
+  .studio-artist-bottom input,.studio-artist-bottom select { max-width:none; }
+  .studio-result .studio-row > .studio-field { grid-column:1/-1; }
+  .studio-saved-title { align-items:start; }
+  .studio-saved .studio-actions { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .studio-between { display:block; }
+  .studio-between .studio-actions { margin-top:12px; }
+  .studio-search { max-width:100%; }
+  .studio-mobile-shortcuts { display:grid;grid-template-columns:1fr 1fr;gap:8px;position:fixed;left:10px;right:10px;bottom:calc(77px + env(safe-area-inset-bottom));z-index:35;padding:9px;border:1px solid var(--line);border-radius:14px;background:var(--surface);box-shadow:0 7px 30px #0002; }
+  .studio-mobile-shortcuts button { min-height:48px; }
+  .studio-message { position:fixed;bottom:calc(153px + env(safe-area-inset-bottom));left:12px;right:12px;z-index:65;background:var(--surface);box-shadow:0 10px 30px #0002;font-size:12px; }
+}
+@media(max-width:360px){
+  .studio-artist-top { grid-template-columns:auto minmax(0,1fr); }
+  .studio-weight-editor { grid-column:1/-1;justify-content:flex-end }
+  .studio-row { grid-template-columns:1fr; }
+  .studio-artist-tools { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
 </style>

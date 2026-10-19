@@ -8,7 +8,7 @@ import { MAX_ARCHIVE_BYTES, type SavedString } from '@/core/dataFormat'
 
 const emit = defineEmits<{ edit: [text: string] }>()
 const vault = useVault()
-const view = ref<'history' | 'favorites'>('history')
+const view = ref<'history' | 'favorites'>('favorites')
 const search = ref('')
 const pageSize = ref(20)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -54,6 +54,18 @@ async function remove(item: SavedString) {
   if (!window.confirm('确定删除这条记录吗？此操作无法撤销，已导出的备份不受影响。')) return
   await vault.removeSaved(view.value, item.id)
   notify(view.value === 'history' ? '已删除这条历史' : '已删除这条收藏')
+}
+
+function exportFavoriteStrings() {
+  if (!vault.favorites.value.length) { notify('收藏夹还是空的'); return }
+  const content = vault.favorites.value.map(item => item.text.replace(/\r?\n/g, ' ')).join('\n')
+  const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `artist-favorites-${new Date().toISOString().slice(0, 10)}.txt`
+  document.body.appendChild(a); a.click(); a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  notify(`已按一行一组的规范导出 ${vault.favorites.value.length} 条收藏`)
 }
 
 function exportData() {
@@ -116,13 +128,13 @@ async function clearImages() {
         <button type="button" :aria-pressed="view === 'history'" @click="view = 'history'; pageSize = 20"><History :size="17" aria-hidden="true" /> 历史 <span>{{ number.format(vault.history.value.length) }}</span></button>
         <button type="button" :aria-pressed="view === 'favorites'" @click="view = 'favorites'; pageSize = 20"><Bookmark :size="17" aria-hidden="true" /> 收藏 <span>{{ number.format(vault.favorites.value.length) }}</span></button>
       </div>
-      <input v-model="search" type="search" class="saved-search" placeholder="在记录中搜索…" aria-label="搜索历史和收藏" />
+      <input v-model="search" type="search" class="saved-search" placeholder="搜索当前分类的画师串…" aria-label="搜索当前分类中的画师串" />
     </div>
 
     <div v-if="!visible.length" class="empty-surface saved-empty">
       <component :is="view === 'history' ? History : Bookmark" :size="26" aria-hidden="true" />
       <strong>{{ search ? '没有匹配的画师串' : view === 'history' ? '还没有生成记录' : '收藏夹还是空的' }}</strong>
-      <span>去工作区生成一串，或者把喜欢的结果加入收藏。</span>
+      <span>{{ view === 'favorites' ? '去画师库挑选喜欢的画师，或在专业混合中保存精选组合。' : '去工作区生成画师串，喜欢的结果可单独收藏。' }}</span>
     </div>
     <div v-else class="saved-list">
       <article v-for="item in visible" :key="item.id" class="saved-card panel">
@@ -144,9 +156,10 @@ async function clearImages() {
 
     <section class="data-panel panel" aria-labelledby="data-heading">
       <div class="data-panel-header"><div><p class="section-eyebrow">BACKUP & STORAGE</p><h2 id="data-heading">本地数据管理</h2></div><Database :size="21" aria-hidden="true" /></div>
-      <p>使用 <code>artist-generator.local-data</code> v1 JSON 规范。导入采用合并方式：历史按 ID 去重，收藏按内容去重；图片和登录信息不会导出。</p>
+      <p>完整保留历史和收藏请使用 JSON 备份；只想批量带走好用的收藏串，选择 TXT（一行一组，可在「专业混合」批量导入）。个人评分、黑名单与结构化预设需要在「专业混合」页面另行备份。</p>
       <div class="data-actions">
-        <button type="button" @click="exportData"><Download :size="17" aria-hidden="true" /> 导出 JSON</button>
+        <button type="button" @click="exportData"><Download :size="17" aria-hidden="true" /> 备份 JSON</button>
+        <button type="button" :disabled="!vault.favorites.value.length" @click="exportFavoriteStrings"><Download :size="17" aria-hidden="true" /> 批量导出收藏 TXT</button>
         <button type="button" :disabled="busy" @click="fileInput?.click()"><FileUp :size="17" aria-hidden="true" /> 导入 JSON</button>
         <input ref="fileInput" class="screen-reader-only" type="file" accept=".json,application/json" aria-label="选择本地 JSON 文件" @change="importData" />
       </div>
